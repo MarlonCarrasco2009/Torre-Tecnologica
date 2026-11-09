@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#101b2d" />
+  <title>SENATI 3D | Torres Tecnológicas · Planta baja</title>
+  <link rel="stylesheet" href="./css/estilos.css?v=jardin-ancho-18-escala" />
+  <!-- La misma versión se usa para Three.js y sus complementos. -->
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-icon" aria-hidden="true">S</div>
+        <div>
+          <p class="eyebrow">Maqueta digital · Proyecto académico</p>
+          <h1>SENATI <span>3D</span></h1>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <span class="status"><span class="status-dot"></span> Versión 0.2</span>
+        <span class="level-tag">Campus + elevadores 1–11</span>
+      </div>
+    </header>
+
+    <div class="layout">
+      <aside class="sidebar" aria-label="Controles de la maqueta">
+        <div class="section-head">
+          <p class="eyebrow">Explorador de campus</p>
+          <h2>Torres Tecnológicas</h2>
+          <p>Primer nivel de las torres A, B y C, interpretado a partir del croquis y las correcciones de distribución.</p>
+        </div>
+
+        <div class="sidebar-section">
+          <h3>Selecciona una torre</h3>
+          <button type="button" class="tower-choice" data-focus="C">
+            <span class="tower-swatch swatch-c"></span>
+            <span><strong>Torre C</strong><small>Cafetería · Cocina</small></span>
+            <span class="chevron">›</span>
+          </button>
+          <button type="button" class="tower-choice" data-focus="B">
+            <span class="tower-swatch swatch-b"></span>
+            <span><strong>Torre B</strong><small>Biblioteca · Aula</small></span>
+            <span class="chevron">›</span>
+          </button>
+          <button type="button" class="tower-choice" data-focus="A">
+            <span class="tower-swatch swatch-a"></span>
+            <span><strong>Torre A</strong><small>Conferencias · Atención</small></span>
+            <span class="chevron">›</span>
+          </button>
+          <button type="button" id="btn-general" class="secondary-btn">↗ Ver todo el campus</button>
+        </div>
+
+        <div class="sidebar-section recorrido-opcion">
+          <h3>Recorre el campus</h3>
+          <p>Explora a pie con el estudiante SENATI. Camina, corre y saluda.</p>
+          <button type="button" id="btn-recorrido-panel" class="secondary-btn" aria-pressed="false">Recorrer en tercera persona</button>
+          <button type="button" id="btn-ver-elevadores" class="secondary-btn">Ver área de elevadores</button>
+          <button type="button" id="btn-ir-elevadores" class="secondary-btn">Ir a los elevadores · Pisos 1–11</button>
+        </div>
+
+        <div class="sidebar-section">
+          <h3>Capas visibles</h3>
+          <label class="toggle-line"><span>Muros perimetrales</span><input id="toggle-muros" type="checkbox" checked /></label>
+          <label class="toggle-line"><span>Áreas verdes y rampas</span><input id="toggle-exteriores" type="checkbox" checked /></label>
+          <label class="toggle-line"><span>Nombres de espacios</span><input id="toggle-etiquetas" type="checkbox" checked /></label>
+        </div>
+
+        <div class="sidebar-section legend">
+          <h3>Leyenda del croquis</h3>
+          <div><i class="legend-mark swatch-a"></i> Rojo: Torre A</div>
+          <div><i class="legend-mark swatch-b"></i> Azul: Torre B</div>
+          <div><i class="legend-mark swatch-c"></i> Verde: Torre C</div>
+          <div><i class="legend-mark gray"></i> Gris: muro perimetral</div>
+          <div><i class="legend-mark concrete"></i> Concreto: rampas / escaleras</div>
+          <div><i class="legend-mark teal"></i> Turquesa: áreas verdes</div>
+          <div><i class="legend-mark dashed"></i> Línea discontinua: zona abierta con columnas</div>
+        </div>
+        <p class="sidebar-note">Las proporciones y las divisiones interiores son aproximadas; los planos de cada compañero definirán las siguientes plantas.</p>
+      </aside>
+
+      <main class="stage">
+        <div id="visor" class="viewer" role="region" aria-label="Maqueta tridimensional interactiva del primer piso de las torres A, B y C de SENATI">
+          <div class="viewer-topline">
+            <span class="scene-chip">● MODO 3D</span>
+            <span class="scene-subtitle">Campus · Vista conceptual</span>
+          </div>
+          <div class="viewer-actions">
+            <button id="btn-recorrido" title="Recorrer en tercera persona" type="button" aria-label="Activar o salir del recorrido en tercera persona" aria-pressed="false">🚶 <span>Recorrer</span></button>
+            <button id="btn-planta" title="Vista desde arriba" type="button">⌗ <span>Planta</span></button>
+            <button id="btn-isometrica" title="Vista isométrica" type="button">◈ <span>3D</span></button>
+            <button id="btn-restablecer" title="Restablecer cámara" type="button">↺</button>
+          </div>
+          <div id="recorrido-hud" class="recorrido-hud" hidden>
+            <div class="recorrido-identidad"><strong>Estudiante SENATI</strong><span id="recorrido-estado" role="status" aria-live="polite">En reposo</span><span id="recorrido-nivel" hidden></span></div>
+            <div class="recorrido-mandos">
+              <div class="recorrido-pad" role="group" aria-label="Controles de movimiento: mantén pulsado">
+                <button type="button" data-mover="KeyW" aria-label="Avanzar" title="Avanzar · W">↑</button>
+                <button type="button" data-mover="KeyA" aria-label="Mover a la izquierda" title="Izquierda · A">←</button>
+                <button type="button" data-mover="KeyS" aria-label="Retroceder" title="Retroceder · S">↓</button>
+                <button type="button" data-mover="KeyD" aria-label="Mover a la derecha" title="Derecha · D">→</button>
+              </div>
+              <div class="recorrido-acciones">
+                <button type="button" id="recorrido-correr" aria-pressed="false" title="Alternar carrera · También puedes mantener Shift">Correr</button>
+                <button type="button" id="recorrido-saludar" title="Saludar · E">Saludar</button>
+                <button type="button" id="recorrido-inicio">Volver al inicio</button>
+                <button type="button" id="recorrido-elevadores">Ir a elevadores</button>
+                <button type="button" id="recorrido-salir">Salir del recorrido</button>
+              </div>
+            </div>
+          </div>
+          <button type="button" id="elevador-usar" class="elevador-usar" hidden>Entrar al elevador · F</button>
+          <section id="elevador-panel" class="elevador-panel" aria-label="Botonera del elevador" hidden>
+            <strong id="elevador-piso">Elevador · Piso 1</strong>
+            <p id="elevador-estado" role="status" aria-live="polite"></p>
+            <div class="elevador-pisos" role="group" aria-label="Selecciona un piso">
+              <button type="button" data-piso-elevador="1" aria-label="Piso 1">1</button>
+              <button type="button" data-piso-elevador="2" aria-label="Piso 2">2</button>
+              <button type="button" data-piso-elevador="3" aria-label="Piso 3">3</button>
+              <button type="button" data-piso-elevador="4" aria-label="Piso 4">4</button>
+              <button type="button" data-piso-elevador="5" aria-label="Piso 5">5</button>
+              <button type="button" data-piso-elevador="6" aria-label="Piso 6">6</button>
+              <button type="button" data-piso-elevador="7" aria-label="Piso 7">7</button>
+              <button type="button" data-piso-elevador="8" aria-label="Piso 8">8</button>
+              <button type="button" data-piso-elevador="9" aria-label="Piso 9">9</button>
+              <button type="button" data-piso-elevador="10" aria-label="Piso 10">10</button>
+              <button type="button" data-piso-elevador="11" aria-label="Piso 11">11</button>
+            </div>
+            <button type="button" id="elevador-salir">Salir al piso 1</button>
+            <small>Los pisos superiores muestran el vestíbulo de elevadores.</small>
+          </section>
+          <div class="viewer-help">🖱 Arrastra para girar · Rueda para zoom · Clic en un ambiente para ver datos</div>
+          <div id="error" class="error" hidden></div>
+        </div>
+        <section id="selection-info" class="selection-card" aria-live="polite">
+          <div>
+            <span id="selected-category" class="eyebrow">ESPACIO SELECCIONADO</span>
+            <h2 id="selected-name">Explora el primer piso</h2>
+            <p id="selected-description">Haz clic en un ambiente de la maqueta para ver su nombre y la torre a la que pertenece.</p>
+          </div>
+          <span id="selected-tower" class="selection-pill">SENATI</span>
+        </section>
+      </main>
+    </div>
+  </div>
+  <script type="module" src="./js/main.js?v=jardin-original-16"></script>
+</body>
+</html>
