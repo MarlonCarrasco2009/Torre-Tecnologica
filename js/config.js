@@ -1,0 +1,68 @@
+// Medidas en UNIDADES APROXIMADAS. No equivalen a metros verificados.
+// Ejes: X = izquierda/derecha, Y = altura, Z = fondo/frente (+Z hacia el acceso principal).
+export const CONFIG = {
+  anchoCampus: 116,
+  extensionDerecha: 24.5,
+  fondoCampus: 78,
+  // El ingreso se desplaza hacia la DERECHA, no al centro.
+  ingreso: { x: 68, ancho: 1.8 },
+  altoPiso: 4.4,
+  baseY: 1.82,
+  acabados: {
+    piso: '#686d72',
+    rampa: '#92989d',
+    muro: '#e5e8ed',
+    celosia: '#96958e',
+    pared: '#465057',
+    columna: '#48545e'
+  },
+  // Torre B es más alargada, C más ancha y A tiene otra proporción.
+  // Las medidas son unidades de maquetación, NO metros comprobados.
+  torres: {
+    C: { id: 'C', nombre: 'Torre C', x: -28, z: 1, ancho: 21, fondo: 69, color: '#34bb75', descripcion: 'Zona de cafetería, cocina y espacios vinculados al comedor.' },
+    B: { id: 'B', nombre: 'Torre B', x:   0, z: 0, ancho: 16.5, fondo: 74, color: '#367dec', descripcion: 'Biblioteca, aula y zona de elevadores.' },
+    A: { id: 'A', nombre: 'Torre A', x:  28, z: 1.5, ancho: 18.5, fondo: 70, color: '#e84f54', descripcion: 'Sala de conferencias, tópico y atención al alumno y al público.' }
+  }
+};
+
+// Coordenadas LOCALES: x y z se miden desde el centro de cada torre.
+// Para cambiar un salón, solo edita sus posiciones, tamaños y paredes.
+// Paredes disponibles: 'norte' (-Z), 'sur' (+Z), 'este' (+X), 'oeste' (-X).
+export const AMBIENTES = {
+  C: [
+    { id:'c-cafeteria', nombre:'Cafetería', tipo:'Alimentación', x:0, z:17.5, ancho:13.1, fondo:12, color:'#d6eccc', paredes:['norte','oeste'], descripcion:'Espacio de cafetería de la Torre C; disposición interna por verificar.' },
+    { id:'c-cocina', nombre:'Cocina', tipo:'Alimentación', x:0, z:2.1, ancho:13.1, fondo:11.4, color:'#e7e2cc', paredes:['norte','oeste','este'], descripcion:'Área de cocina señalada en el croquis del primer nivel.' },
+    { id:'c-servicios', nombre:'Ambientes C', tipo:'Ambiente por definir', x:0, z:-16.7, ancho:13.1, fondo:19, color:'#d8e6e3', paredes:['norte','oeste','este'], descripcion:'Ambientes de la parte posterior de la Torre C; se ajustarán con un plano más detallado.' }
+  ],
+  B: [
+    { id:'b-elevadores', nombre:'Elevadores', tipo:'Circulación vertical', x:0, z:18, ancho:13, fondo:9, recorteFrontal:2.2, color:'#d5e4f2', descripcion:'Cuatro elevadores con puertas animadas y acceso a los pisos 1 al 11; vestíbulo con vidrio de marco negro y jardín lateral en L con borde plomo.' },
+    { id:'b-biblioteca', nombre:'Biblioteca', tipo:'Estudio', x:0, z:-1.5, ancho:13, fondo:22.5, color:'#d6e3fa', paredes:['este','oeste'], descripcion:'Biblioteca central indicada en el croquis.' },
+    { id:'b-aula', nombre:'Aula', tipo:'Educación', x:0, z:-20, ancho:13, fondo:10, color:'#dce9f9', paredes:['norte','este','oeste'], descripcion:'Aula ubicada en el extremo posterior de la Torre B.' }
+  ],
+  A: [
+    { id:'a-conferencias', nombre:'Sala de conferencias', tipo:'Eventos', x:0, z:16, ancho:13, fondo:15, ampliacionFrontal:4.5, color:'#f2d9d3', paredes:['norte','sur','oeste'], paredesConPuertas:['este'], descripcion:'Auditorio de la Torre A con el lateral del jardín cerrado por un muro continuo.' },
+    { id:'a-atencion-alumno', nombre:'Atención al alumno', tipo:'Atención', x:0, z:-0.5, ancho:13, fondo:10, color:'#f1e0d7', paredes:['oeste'], descripcion:'Área de atención al alumno según el croquis.' },
+    { id:'a-atencion-publico', nombre:'Atención al público', tipo:'Atención', x:0, z:-13, ancho:13, fondo:9, color:'#f5e2d6', paredes:['oeste','norte'], descripcion:'Área de atención al público en la zona posterior.' },
+    { id:'a-topico', nombre:'Tópico', tipo:'Servicios', x:0, z:-22.3, ancho:6.3, fondo:5.6, color:'#f0dedb', paredes:['norte','este'], descripcion:'Tópico representado junto a las oficinas posteriores.' }
+  ]
+};
+
+// Retrae los ambientes de B y A tomando la cocina como referencia.
+// La huella de las torres y sus conexiones al cerco permanecen fijas.
+export function distribucionInterior(torre){
+  const factorOriginal=torre.fondo/54;
+  if(torre.id==='C') return {factorZ:factorOriginal,desplazamientoZ:0};
+
+  const cocina=AMBIENTES.C.find(ambiente=>ambiente.id==='c-cocina');
+  const referencia=CONFIG.torres.C;
+  // Ajuste fino hacia el frente: recupera 6 unidades del retranqueo inicial.
+  const ajusteFrontal=6;
+  const inicio=referencia.z+(cocina.z+cocina.fondo/2)*referencia.fondo/54+ajusteFrontal;
+  const ambientes=AMBIENTES[torre.id];
+  const posterior=Math.min(...ambientes.map(a=>a.z-a.fondo/2));
+  const frontal=Math.max(...ambientes.map(a=>a.z+a.fondo/2));
+  const limitePosterior=posterior*factorOriginal;
+  // Conserva el extremo posterior y reparte los ambientes en el tramo restante.
+  const factorZ=(inicio-torre.z-limitePosterior)/(frontal-posterior);
+  return {factorZ,desplazamientoZ:limitePosterior-posterior*factorZ};
+}
