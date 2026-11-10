@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { CONFIG } from '../config.js';
-import { crearPiso1 } from './piso1.js?v=separar-atencion-2';
+import { crearPiso1 } from './piso1.js?v=croquis-10nov';
 
 // Cada torre es un grupo independiente. Así se añaden pisos después.
 export function crearTorres(escena,seleccionables,capaEtiquetas){

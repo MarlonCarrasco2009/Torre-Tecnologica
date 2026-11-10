@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { AMBIENTES,CONFIG,distribucionInterior } from '../config.js';
-import { bloque,placa,columna,etiqueta,paredVidrio,paredConPuertas,paredConPuerta } from '../geometria.js';
+import { bloque,placa,columna,etiqueta,paredVidrio,paredConPuertas,paredConPuerta,fachadaTorreA } from '../geometria.js';
 import { crearZonaElevadores } from '../elevadores.js';
 
 // Devuelve un grupo independiente por torre: exactamente el PRIMER piso.
@@ -56,18 +56,17 @@ export function crearPiso1(torre, objetosSeleccionables, capaEtiquetas){
     suelo.material.emissive=new THREE.Color('#000000');
     objetosSeleccionables.push(suelo);
 
-    const h=3.2, espesor=.3, alturaCentro=CONFIG.baseY+h/2;
+    const h=torre.id==='A'?4.4:3.2, espesor=.3, alturaCentro=CONFIG.baseY+h/2;
     const paredMat=new THREE.MeshStandardMaterial({color:CONFIG.acabados.pared,roughness:.83});
     const p=ambiente.paredes||[];
-    const separarAtencion=torre.id==='A'&&
-      ['a-atencion-alumno','a-atencion-publico'].includes(ambiente.id);
     const ladosPared=new Set(p);
-    if(separarAtencion) ['norte','sur','oeste','este'].forEach(lado=>ladosPared.add(lado));
     // También se retira la viga/muro horizontal oscuro de la cafetería.
     if(ladosPared.has('norte')&&ambiente.id!=='c-cafeteria') bloque(grupo,{x,y:alturaCentro,z:z-fondo/2,ancho,alto:h,fondo:espesor,material:paredMat});
     if(ladosPared.has('sur')) bloque(grupo,{x,y:alturaCentro,z:z+fondo/2,ancho,alto:h,fondo:espesor,material:paredMat});
     if(ladosPared.has('oeste')) bloque(grupo,{x:x-ancho/2,y:alturaCentro,z,ancho:espesor,alto:h,fondo,material:paredMat});
     if(ladosPared.has('este')) bloque(grupo,{x:x+ancho/2,y:alturaCentro,z,ancho:espesor,alto:h,fondo,material:paredMat});
+    if(ambiente.fachada)fachadaTorreA(grupo,{x:x+ancho/2,z,largo:fondo,
+      baseY:CONFIG.baseY,alto:h,tipo:ambiente.fachada});
 
     // Los dos lados de acceso de los elevadores se cierran con vidrio y puertas.
     for(const lado of ambiente.paredesVidrio||[]){
@@ -102,7 +101,10 @@ export function crearPiso1(torre, objetosSeleccionables, capaEtiquetas){
   }
   if(torre.id==='A'){
     // Tarima de sala de conferencias.
-    bloque(grupo,{x:0,y:CONFIG.baseY+.24,z:posicionZ(11.6),ancho:10,alto:.32,fondo:2.8,color:'#a4b1c1'});
+    bloque(grupo,{x:0,y:CONFIG.baseY+.24,z:18.9,ancho:10,alto:.32,fondo:2.8,color:'#a4b1c1'});
+    // Mostrador visible a través de la doble puerta de Experiencia Estudiantil.
+    bloque(grupo,{x:1.4,y:CONFIG.baseY+.55,z:-18.15,ancho:1.2,alto:1.1,fondo:4.4,color:'#aaa49a'});
+    bloque(grupo,{x:1.4,y:CONFIG.baseY+1.13,z:-18.15,ancho:1.35,alto:.08,fondo:4.5,color:'#d5d2c9'});
   }
   etiqueta(capaEtiquetas,torre.nombre,torre.x,CONFIG.baseY+4.98,torre.z+torre.fondo/2-4,'tower',torre.id.toLowerCase());
   return grupo;
