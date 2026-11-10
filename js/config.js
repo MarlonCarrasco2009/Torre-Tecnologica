@@ -21,7 +21,7 @@ export const CONFIG = {
   torres: {
     C: { id: 'C', nombre: 'Torre C', x: -28, z: 1, ancho: 21, fondo: 69, color: '#34bb75', descripcion: 'Zona de cafetería, cocina y espacios vinculados al comedor.' },
     B: { id: 'B', nombre: 'Torre B', x:   0, z: 0, ancho: 16.5, fondo: 74, color: '#367dec', descripcion: 'Biblioteca, aula y zona de elevadores.' },
-    A: { id: 'A', nombre: 'Torre A', x:  28, z: 1.5, ancho: 18.5, fondo: 70, color: '#e84f54', descripcion: 'Sala de conferencias, tópico y atención al alumno y al público.' }
+    A: { id: 'A', nombre: 'Torre A', x:  28, z: 1.5, ancho: 18.5, fondo: 70, color: '#e84f54', descripcion: 'Sala de Conferencias, Experiencia Estudiantil (atención al estudiante), Administración y tópico.' }
   }
 };
 
@@ -40,16 +40,18 @@ export const AMBIENTES = {
     { id:'b-aula', nombre:'Aula', tipo:'Educación', x:0, z:-20, ancho:13, fondo:10, color:'#dce9f9', paredes:['norte','este','oeste'], descripcion:'Aula ubicada en el extremo posterior de la Torre B.' }
   ],
   A: [
-    { id:'a-conferencias', nombre:'Sala de conferencias', tipo:'Eventos', x:0, z:16, ancho:13, fondo:15, ampliacionFrontal:4.5, color:'#f2d9d3', paredes:['norte','sur','oeste'], paredesConPuertas:['este'], descripcion:'Auditorio de la Torre A con el lateral del jardín cerrado por un muro continuo.' },
-    { id:'a-atencion-alumno', nombre:'Atención al alumno', tipo:'Atención', x:0, z:-0.5, ancho:13, fondo:10, color:'#f1e0d7', paredes:['oeste'], descripcion:'Área de atención al alumno según el croquis.' },
-    { id:'a-atencion-publico', nombre:'Atención al público', tipo:'Atención', x:0, z:-13, ancho:13, fondo:9, color:'#f5e2d6', paredes:['oeste','norte'], descripcion:'Área de atención al público en la zona posterior.' },
-    { id:'a-topico', nombre:'Tópico', tipo:'Servicios', x:0, z:-22.3, ancho:6.3, fondo:5.6, color:'#f0dedb', paredes:['norte','este'], descripcion:'Tópico representado junto a las oficinas posteriores.' }
+    { id:'a-conferencias', nombre:'Sala de Conferencias', tipo:'Eventos', x:0, z:4.1, ancho:13, fondo:35.6, color:'#f2d9d3', paredes:['norte','sur','oeste'], fachada:'conferencias', descripcion:'Fachada de paneles grises y claros. Cinco puertas hacia el patio: dos parejas y una puerta individual, según el croquis actualizado.' },
+    { id:'a-atencion-alumno', nombre:'Atención al Estudiante', tipo:'Atención', x:0, z:-18.15, ancho:13, fondo:8.9, color:'#f1e0d7', paredes:['norte','oeste'], fachada:'estudiantes', descripcion:'Experiencia Estudiantil: atención al estudiante con dos hojas delgadas de vidrio, paños fijos, franja esmerilada y tiradores metálicos.' },
+    { id:'a-atencion-publico', nombre:'Administración', tipo:'Atención', x:0, z:-26.35, ancho:13, fondo:7.5, color:'#f5e2d6', paredes:['oeste','norte','este'], descripcion:'Administración, detrás de Atención al Estudiante y junto a la franja verde transversal del croquis.' },
+    { id:'a-topico', nombre:'Tópico', tipo:'Servicios', x:-3.35, z:-32.35, ancho:6.3, fondo:4.5, color:'#f0dedb', paredes:['norte','este'], descripcion:'Tópico conservado en la parte posterior de la torre.' }
   ]
 };
 
 // Retrae los ambientes de B y A tomando la cocina como referencia.
 // La huella de las torres y sus conexiones al cerco permanecen fijas.
 export function distribucionInterior(torre){
+  // La corrección del 10/11 fija directamente las cotas longitudinales de A.
+  if(torre.id==='A') return {factorZ:1,desplazamientoZ:0};
   const factorOriginal=torre.fondo/54;
   if(torre.id==='C') return {factorZ:factorOriginal,desplazamientoZ:0};
 

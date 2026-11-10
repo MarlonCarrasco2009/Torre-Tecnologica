@@ -44,9 +44,9 @@ export function crearRecorrido({escena,camara,controles,canvas,visor,etiquetas,s
   function inicio(){
     elevadores.reiniciar();
     limpiar();carrera=false;correr.setAttribute('aria-pressed','false');
-    // Zona abierta de A, separada de la columna central y de la sala de conferencias.
-    avatar.grupo.position.set(CONFIG.torres.A.x+4,CONFIG.baseY+.01,CONFIG.torres.A.z+29);
-    avatar.grupo.rotation.y=Math.PI;avatar.reiniciar();yaw=0;pitch=.30;distancia=5.5;
+    // Comienza dentro del acceso inferior del croquis, sobre el piso bajo.
+    avatar.grupo.position.set(CONFIG.ingreso.x,.13,35.7);
+    avatar.grupo.rotation.y=Math.PI;avatar.reiniciar();yaw=0;pitch=.38;distancia=6.5;
     actualizarCamara(0,true);canvas.focus({preventScroll:true});
   }
   function cambiar(valor){

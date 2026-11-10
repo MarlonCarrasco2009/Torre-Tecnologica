@@ -3,8 +3,8 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { CSS2DRenderer } from 'three/addons/renderers/CSS2DRenderer.js';
 import { CONFIG } from './config.js';
 import { crearTorres } from './floors/registro.js';
-import { crearExteriores } from './exteriores.js?v=jardin-original-16';
-import { crearRecorrido } from './recorrido.js';
+import { crearExteriores } from './exteriores.js?v=piso-horizontal-4';
+import { crearRecorrido } from './recorrido.js?v=croquis-10nov';
 import { crearServicioElevadores } from './elevadores.js?v=relleno-elevadores-2';
 
 const visor=document.querySelector('#visor');
@@ -95,7 +95,35 @@ document.querySelector('#btn-ver-elevadores').addEventListener('click',()=>{
   controles.target.set(centro.x,CONFIG.baseY+1,centro.z);controles.update();
   mostrarInfo('Elevadores · Torre B','Cuatro cabinas, jardín en L y acceso de vidrio con marcos negros. Entra en tercera persona para viajar del piso 1 al 11.','TORRE B','ELEVADORES');
 });
+document.querySelector('#btn-ver-ingreso').addEventListener('click',()=>{
+  recorrido.salir();
+  camara.position.set(68,11,-6);
+  controles.target.set(68,3.5,-22);
+  controles.update();
+  mostrarInfo('Ingreso peatonal · Interior','Cubierta panelada, portones blancos, siete torniquetes de acero, paso lateral, caseta de vigilancia y pavimento de piedra con canaleta.','ACCESO','INTERIOR');
+  document.querySelectorAll('[data-focus]').forEach(b=>b.classList.remove('active'));
+});
 
+document.querySelector('#btn-ver-ingreso-exterior').addEventListener('click',()=>{
+  recorrido.salir();
+  camara.position.set(68,7,-36);
+  controles.target.set(68,3.5,-22);
+  controles.update();
+  mostrarInfo('Ingreso peatonal · Exterior','Pórtico gris con juntas de revestimiento, portones enrejados y ventana exterior de vigilancia, según el video de referencia.','ACCESO','EXTERIOR');
+  document.querySelectorAll('[data-focus]').forEach(b=>b.classList.remove('active'));
+});
+
+document.querySelector('#btn-ver-patio').addEventListener('click',()=>{
+  recorrido.salir();
+  camara.position.set(56,98,1);controles.target.set(56,0,0);controles.update();
+  mostrarInfo('Patio de Torre A · Croquis','El ingreso, el paseo de Torre A y el pasillo entre jardines conectan mediante un piso horizontal. La escalera doble frontal y la rampa exterior mantienen el acceso desde el nivel bajo.','TORRE A','PLANTA DEL PATIO');
+});
+document.querySelector('#btn-ver-fachadas').addEventListener('click',()=>{
+  recorrido.salir();
+  camara.position.set(87,17,7);controles.target.set(35.5,3.5,1);controles.update();
+  capaEtiquetas.visible=false;document.querySelector('#toggle-etiquetas').checked=false;
+  mostrarInfo('Conferencias y Atención al Estudiante','Paneles grises y claros; cinco puertas de conferencias y doble puerta delgada de vidrio en Experiencia Estudiantil.','TORRE A','FACHADAS');
+});
 document.querySelectorAll('[data-focus]').forEach(btn=>btn.addEventListener('click',()=>enfocarTorre(btn.dataset.focus)));
 document.querySelector('#btn-general').addEventListener('click',()=>{vistaGeneral();mostrarInfo('Vista general','Las torres C, B y A están alineadas de izquierda a derecha. El primer piso incluye zonas abiertas y espacios con columnas.','SENATI','CAMPUS');});
 document.querySelector('#btn-restablecer').addEventListener('click',vistaGeneral);
