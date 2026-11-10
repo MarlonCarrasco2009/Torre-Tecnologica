@@ -1,12 +1,12 @@
 # SENATI 3D — Torres Tecnológicas (planta baja)
 
-**Versión:** 0.2, base modular del proyecto académico.
+**Versión:** 0.3, patio de Torre A actualizado al croquis del 10 de noviembre de 2026.
 
 Esta maqueta en HTML, CSS, JavaScript y **Three.js** dibuja el **primer piso de las tres torres** y permite recorrer los **vestíbulos de elevadores del piso 1 al 11**:
 
 - **Torre C (izquierda):** cafetería, cocina, otros ambientes y terraza comedor próxima a la torre.
 - **Torre B (centro):** biblioteca, aula y elevadores.
-- **Torre A (derecha):** sala de conferencias, atención al alumno, atención al público y tópico.
+- **Torre A (derecha):** Sala de Conferencias, Atención al Estudiante (Experiencia Estudiantil), Administración y tópico.
 - **Proporciones distintas:** C más ancha, B más larga y A de dimensiones diferentes; son aproximaciones sin cotas reales.
 - **Conexión con muros:** pórticos abiertos unen los extremos de las tres torres con el cerramiento; dos franjas de pasarelas con columnas conectan las torres entre sí.
 - **Acceso principal:** a la **derecha** de la fachada, no en el centro; puedes editarlo en `CONFIG.ingreso`.
@@ -35,6 +35,7 @@ No abras `index.html` haciendo doble clic: un servidor local evita problemas con
 - Haz clic sobre el suelo de un ambiente para consultar sus datos.
 - El panel izquierdo permite enfocar cada torre y ocultar las capas.
 - El botón **Planta** cambia a vista superior.
+- **Ver patio del croquis** enfoca la distribución corregida de Torre A; **Ver fachadas de Torre A** muestra los paneles y rótulos de Conferencias y Experiencia Estudiantil y oculta las etiquetas flotantes. Se pueden volver a activar en **Nombres de espacios**.
 - **Recorrer** activa la cámara en tercera persona con un estudiante 3D estilizado, inspirado en la referencia del polo azul SENATI y pantalón oscuro.
 - En recorrido: **WASD o flechas** para caminar, **Shift** para correr y **E** para saludar. Arrastra sobre la vista para girar la cámara y usa la rueda para acercarla o alejarla.
 - También hay botones en pantalla: mantén las flechas para moverte, activa **Correr** para cambiar la velocidad y pulsa **Saludar**. Funcionan con ratón y pantalla táctil.
@@ -137,3 +138,17 @@ Hecho como **prototipo editable** a partir del croquis aportado por el estudiant
 - En `js/exteriores.js`, `unirTorresAlMuro` agrega pórticos hasta el muro delantero y posterior. `unirTorresEntreSi` crea dos conexiones transversales por pares de torres.
 - La entrada peatonal está al lado derecho: `js/config.js`, `CONFIG.ingreso = { x: 68, ancho: 1.8 }`, como un hueco pequeño sin puerta ni pórtico. La zona ajardinada tiene una escala transversal de 1.5 y el cerco derecho se extendió 24.5 unidades. Las torres tienen bases macizas elevadas (`CONFIG.baseY = 1.82`); un paseo elevado separa la torre A de los jardines desplazados lateralmente. Las parejas de escaleras se unificaron en tramos anchos, el césped llega a su borde y las rampas suben progresivamente desde la plaza hasta el nivel de la torre.
 - Este sigue siendo un prototipo visual; **ninguna proporción ni ubicación está verificada con medidas de campo**. Corrige las dimensiones cuando tengas los croquis acotados.
+
+## 9. Croquis de Torre A actualizado · 10 de noviembre de 2026
+
+Referencia conservada en `assets/croquis-torre-a-2026-11-10.png`. Las medidas siguen siendo unidades aproximadas de maqueta.
+
+- Jardín rectangular, isla trapezoidal, jardín derecho con entrante en L y franjas verdes frontal y posterior recolocados según el dibujo. Ingreso peatonal, caja y plazoleta de piedra en la esquina posterior derecha.
+- Pasillo central horizontal a la misma cota que Torre A y el ingreso. En el pasillo exterior se recuperó una rampa a la izquierda de la escalera: conecta directamente el piso bajo con el descanso superior, junto a la isla trapezoidal. A su derecha permanece el pasillo inclinado con la escalera junto al jardín en L.
+- Tres conjuntos de escaleras: el frontal de la isla trapezoidal tiene **dos tramos contiguos de 11 peldaños cada uno**, que suben hacia las torres (-X), separados por una baranda central. La pareja posterior de la isla rectangular se retiró al elevar todo el piso a una misma cota. La escalera posterior junto a Torre A tiene 11 peldaños y la exterior junto al jardín en L tiene 5. Los peldaños se calculan por el desnivel, con una contrahuella de maqueta no mayor a 0.16; el croquis no confirma un número real de peldaños.
+- Sala de Conferencias ampliada y alineada con el jardín: cinco hojas grises, agrupadas en dos parejas y una individual, con vanos transitables.
+- Atención al Estudiante incorpora la fachada de **Experiencia Estudiantil**, con dos hojas de vidrio de 0.035 unidades de espesor, perfiles metálicos, tiradores largos, paños fijos y franja esmerilada. Paneles grises y claros y rótulos físicos basados en las fotos de referencia.
+- El recorrido comienza dentro del acceso frontal. Se mantienen las torres B y C y el funcionamiento de sus elevadores.
+- El piso entre el ingreso peatonal y Torre A es completamente horizontal a la cota 1.83, con relleno macizo. El paso central entre jardines y el pavimento de piedra del ingreso comparten esa altura. Se eliminaron la depresión, la pendiente de enlace y la escalera posterior que ya no tenía desnivel que salvar.
+
+Validación: `tests/recorrido.test.mjs` comprueba el paso por las siete hojas, la subida y bajada por todos los carriles de las escaleras, las parejas orientadas hacia las torres con baranda central, la rampa izquierda de recorrido continuo, la altura uniforme del patio y del pasillo central, las colisiones y los cuatro elevadores entre los pisos 1 y 11. Ejecutar con `node tests/recorrido.test.mjs RUTA/three.core.mjs`, usando Three.js 0.180.0.
