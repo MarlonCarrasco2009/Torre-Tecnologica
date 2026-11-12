@@ -4,8 +4,8 @@ export const CONFIG = {
   anchoCampus: 116,
   extensionDerecha: 24.5,
   fondoCampus: 78,
-  // El ingreso se desplaza hacia la DERECHA, no al centro.
-  ingreso: { x: 68, ancho: 1.8 },
+  // x conserva el acceso del cerco; desplazamientoX mueve solo el edificio hacia el patio.
+  ingreso: { x: 69.45, z: -22, ancho: 1.8, desplazamientoX: -.6 },
   altoPiso: 4.4,
   baseY: 1.82,
   acabados: {

@@ -1,5 +1,6 @@
 import * as THREE from 'three';
-import { CONFIG } from './config.js';
+import { CONFIG } from './config.js?v=ingreso-unificado-27';
+import { crearIngreso } from './ingreso.js?v=ingreso-unificado-28';
 import { bloque,placa,columna,etiqueta } from './geometria.js';
 
 const pavimento=CONFIG.acabados.piso;
@@ -309,133 +310,13 @@ function pisoLateralElevado(grupo,puntos,alturaEnZ){
 }
 
 
-// Pórtico observado desde el patio (+Z) y desde la calle (-Z).
-function crearIngresoTerraza(grupo,{x,z,baseY,escalaX=1,conectarCerco=true}){
-  const g=new THREE.Group();g.name='Ingreso cubierto de la terraza';g.position.set(x,baseY,z);grupo.add(g);
-  g.scale.x=escalaX;
-  const acero=new THREE.MeshStandardMaterial({color:'#b0b8bb',metalness:.72,roughness:.36});
-  const blanco=new THREE.MeshStandardMaterial({color:'#dedfda',metalness:.25,roughness:.5});
-  const oscuro=new THREE.MeshStandardMaterial({color:'#303a42',roughness:.62});
-  const caja=(nombre,px,py,pz,w,h,d,material)=>{
-    const m=bloque(g,{x:px,y:py,z:pz,ancho:w,alto:h,fondo:d,
-      ...(typeof material==='string'?{color:material}:{material})});m.name=nombre;return m;
-  };
-  const tubo=(a,b,r=.028)=>{
-    const inicio=new THREE.Vector3(...a),fin=new THREE.Vector3(...b),direccion=fin.clone().sub(inicio);
-    const pieza=new THREE.Mesh(new THREE.CylinderGeometry(r,r,direccion.length(),10),acero);
-    pieza.position.copy(inicio).add(fin).multiplyScalar(.5);
-    pieza.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),direccion.normalize());
-    pieza.name='Acero tubular del ingreso';pieza.castShadow=true;g.add(pieza);
-  };
-  // Baldosas de piedra gris: textura determinista, juntas y vetas discretas.
-  const lienzo=document.createElement('canvas');lienzo.width=lienzo.height=512;
-  const ctx=lienzo.getContext('2d');let semilla=17;
-  const azar=()=>{semilla=(semilla*1664525+1013904223)>>>0;return semilla/4294967296;};
-  ctx.fillStyle='#777b7d';ctx.fillRect(0,0,512,512);
-  for(let i=0;i<9000;i++){
-    const px=azar()*512,py=azar()*512,v=90+Math.floor(azar()*85);
-    ctx.strokeStyle=`rgba(${v},${v},${v},.32)`;ctx.lineWidth=.5+azar()*1.5;
-    ctx.beginPath();ctx.moveTo(px,py);ctx.lineTo(px+4+azar()*20,py-2-azar()*8);ctx.stroke();
-  }
-  ctx.strokeStyle='#565c60';ctx.lineWidth=3;ctx.strokeRect(0,0,512,512);
-  const piedra=new THREE.CanvasTexture(lienzo);piedra.wrapS=piedra.wrapT=THREE.RepeatWrapping;piedra.repeat.set(10,7);piedra.colorSpace=THREE.SRGBColorSpace;
-  const pav=new THREE.MeshStandardMaterial({map:piedra,bumpMap:piedra,bumpScale:.035,roughness:.96,
-    polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-1});
-  caja('Base de piedra del ingreso',0,-.055,.45,14.2,.1,9.5,'#777b7d');
-  const piso=new THREE.Mesh(new THREE.PlaneGeometry(14.2,9.5),pav);piso.rotation.x=-Math.PI/2;piso.position.set(0,0,.45);piso.receiveShadow=true;g.add(piso);
-  // Cubierta ancha, cielo raso oscuro y paneles con juntas visibles.
-  caja('Marquesina revestida',0,5.35,0,13.4,.6,6.4,'#c7ccce');
-  caja('Cielo raso gris',0,5.025,0,13.1,.045,6.15,'#505a62');
-  for(let px=-6;px<=6;px+=1.5){
-    for(const pz of [-3.205,3.205])caja('Junta de fachada',px,5.35,pz,.018,.57,.012,'#929b9f');
-    caja('Junta de cielo raso',px,4.995,0,.015,.012,6.1,'#444d55');
-  }
-  for(const pz of [-1.5,0,1.5])caja('Junta transversal del techo',0,4.995,pz,13.1,.012,.015,'#444d55');
-  for(const px of [-6.02,5.95]){
-    caja('Columna revestida de aluminio',px,2.5,-1.9,.46,5,.65,'#bcc3c6');
-    for(let py=.8;py<5;py+=.85)caja('Junta de columna',px,py,-1.56,.46,.018,.012,'#879196');
-  }
-  // Seis hojas blancas con barrotes finos y zócalos metálicos.
-  const puertaZ=-2.3,izquierda=-5.7,anchoHoja=1.65;
-  caja('Dintel blanco del portón',-.75,3.67,puertaZ,10.15,.68,.3,blanco);
-  for(let hoja=0;hoja<6;hoja++){
-    const centro=izquierda+anchoHoja*(hoja+.5);
-    for(const dx of [-.8,.8])caja('Marco vertical de puerta',centro+dx,1.67,puertaZ,.085,3.25,.14,blanco);
-    for(const py of [.17,3.27])caja('Marco horizontal de puerta',centro,py,puertaZ,1.6,.12,.14,blanco);
-    caja('Zócalo blanco de puerta',centro,.34,puertaZ,1.52,.27,.08,blanco);
-    for(let j=1;j<10;j++)caja('Barrote vertical blanco',centro-.8+j*.16,1.84,puertaZ,.026,2.78,.04,blanco);
-    for(const py of [.8,2.7])caja('Travesaño de reja',centro,py,puertaZ,1.55,.035,.045,blanco);
-    tubo([centro+.6,1.3,puertaZ+.12],[centro+.6,1.63,puertaZ+.12]);
-  }
-  // Franja abierta por encima del dintel, como en las tomas interiores.
-  for(const px of [-2.5,1.1,4.2])caja('Montante superior',px,4.53,puertaZ,.075,.98,.12,oscuro);
-  // Torniquetes de cuerpo rectangular, lector y mecanismo trípode.
-  for(let i=0;i<7;i++){
-    const px=-4.1+i*1.34,pz=.45;
-    caja('Pedestal de torniquete de acero',px,.69,pz,.34,1.29,.62,acero);
-    caja('Tapa oscura del torniquete',px,1.36,pz,.39,.1,.68,oscuro);
-    caja('Lector de tarjeta',px,1.422,pz+.13,.18,.026,.22,'#162733');
-    caja('Indicador verde del lector',px,1.44,pz+.2,.075,.008,.025,'#54cf92');
-    const eje=new THREE.Mesh(new THREE.CylinderGeometry(.1,.1,.16,12),acero);eje.rotation.z=Math.PI/2;eje.position.set(px-.23,1.01,pz);g.add(eje);
-    for(let j=0;j<3;j++){
-      const ang=j*Math.PI*2/3;
-      tubo([px-.25,1.01,pz],[px-.73,1.01+Math.sin(ang)*.36,pz+Math.cos(ang)*.36],.033);
-    }
-  }
-  // Paso accesible y baranda tubular a la izquierda.
-  for(const px of [-5.65,-4.85]){
-    for(const pz of [.3,1.4])tubo([px,.05,pz],[px,1.12,pz],.04);
-    tubo([px,1.12,.3],[px,1.12,1.4],.04);
-  }
-  for(let pz=1.5;pz<=4.5;pz+=1)tubo([-6.65,.05,pz],[-6.65,1.14,pz],.04);
-  for(const py of [.35,.7,1.14])tubo([-6.65,py,1.5],[-6.65,py,4.5],.035);
-  // Caseta lateral: ventana exterior, puerta interior y panel azul de control.
-  caja('Caseta blanca de vigilancia',5.32,1.98,-1.15,2.1,3.96,2.6,'#d4d7d5');
-  caja('Marco de ventana exterior',5.32,1.85,-2.47,1.35,1.35,.09,blanco);
-  caja('Cristal oscuro de vigilancia',5.32,1.85,-2.53,1.17,1.16,.025,'#304b59');
-  caja('Alféizar de ventana',5.32,1.15,-2.58,1.48,.1,.28,blanco);
-  caja('Puerta de caseta',5.32,1.35,.17,1.05,2.6,.06,'#79858a');
-  caja('Panel azul interior',4.3,1.6,1.1,.12,2.9,1.4,'#126cad');
-  caja('Módulo lateral de control',5.42,.64,1.85,1.25,1.2,1.15,oscuro);
-  caja('Mostrador de acero',5.42,1.29,1.85,1.35,.1,1.25,acero);
-  // Rótulo exterior del campus, legible desde el lado de la calle.
-  const cartel=document.createElement('canvas');cartel.width=1024;cartel.height=160;
-  const c=cartel.getContext('2d');c.fillStyle='#d6d9d7';c.fillRect(0,0,1024,160);
-  c.fillStyle='#48535c';c.textAlign='center';c.font='bold 54px Arial';c.fillText('SENATI',512,68);
-  c.font='27px Arial';c.fillText('CENTRO TECNOLÓGICO · CAMPUS INDEPENDENCIA',512,120);
-  const rotulo=new THREE.CanvasTexture(cartel);rotulo.colorSpace=THREE.SRGBColorSpace;
-  const letrero=new THREE.Mesh(new THREE.PlaneGeometry(9.6,.62),new THREE.MeshStandardMaterial({map:rotulo,roughness:.75}));letrero.position.set(-.75,3.67,puertaZ-.16);letrero.rotation.y=Math.PI;g.add(letrero);
-  // Canaleta de drenaje transversal en la llegada interior.
-  caja('Canaleta de drenaje',0,.055,3.8,12.7,.025,.18,'#343b3f');
-  for(let px=-6.3;px<6.35;px+=.13)caja('Rejilla de drenaje',px,.074,3.8,.035,.018,.18,acero);
-  // Alas laterales: zócalo blanco y baranda oscura unidos al cerco existente.
-  // Las uniones quedan a los lados del portón; el frente conserva el paso libre.
-  const cercoDerecho=CONFIG.anchoCampus/2+CONFIG.extensionDerecha-x;
-  const cercoFondo=-CONFIG.fondoCampus/2-z;
-  const ala=(desde,hasta)=>{
-    const a=new THREE.Vector3(desde[0],0,desde[1]),b=new THREE.Vector3(hasta[0],0,hasta[1]);
-    const largo=a.distanceTo(b),centro=a.clone().add(b).multiplyScalar(.5);
-    const tramo=new THREE.Group();tramo.position.copy(centro);
-    tramo.rotation.y=-Math.atan2(b.z-a.z,b.x-a.x);g.add(tramo);
-    bloque(tramo,{y:.8,ancho:largo+.12,alto:1.6,fondo:.3,color:CONFIG.acabados.muro}).name='Unión blanca del ingreso al cerco';
-    bloque(tramo,{y:1.63,ancho:largo+.16,alto:.08,fondo:.38,color:'#c4cbce'});
-    for(const py of [1.78,2.72])bloque(tramo,{y:py,ancho:largo+.1,alto:.075,fondo:.075,material:oscuro});
-    const divisiones=Math.ceil(largo/1.5);
-    for(let i=0;i<=divisiones;i++)bloque(tramo,{x:-largo/2+i*largo/divisiones,y:2.18,ancho:.075,alto:1.08,fondo:.075,material:oscuro});
-  };
-  if(conectarCerco){
-    ala([-6.25,-2.3],[-14,-2.3]);
-    ala([-14,-2.3],[-14,cercoFondo]);
-    ala([6.35,-2.3],[cercoDerecho,-2.3]);
-  }
-  etiqueta(g,'Ingreso peatonal',0,6.15,-.3,'zone');
-}
-
 function crearAccesoLateral(grupo){
   const acceso=new THREE.Group();acceso.name='Patio de Torre A · croquis 10 noviembre';grupo.add(acceso);
   // Coordenadas del dibujo: fachada, dos islas centrales y cerco derecho.
   const alto=CONFIG.baseY+.01,bajo=.14,norte=-14,sur=25;
   const fachada=CONFIG.torres.A.x+13*CONFIG.torres.A.ancho/32;
+  const ingresoX=CONFIG.ingreso.x+CONFIG.ingreso.desplazamientoX;
+  const finJardinAdministracion=ingresoX-5.7;
   const jardinCroquis=(nombre,puntos,nivel=alto+.07)=>{
     const g=new THREE.Group();g.name=nombre;g.userData.contorno=puntos;acceso.add(g);
     jardinContorno(g,puntos,nivel,.38,'#33363b');return g;
@@ -445,8 +326,8 @@ function crearAccesoLateral(grupo){
   jardinCroquis('Jardín derecho con entrante en L',[[71.15,norte],[81.3,norte],[81.3,31],
     [78.6,28.2],[78.9,24],[78.9,20.5],[74.1,20.5]],1.1);
   jardinCroquis('Jardín frontal junto al ingreso',[[fachada,34],[65.9,32.8],[65.9,37.4],[fachada,37.4]]);
-  jardinCroquis('Franja verde transversal junto a Administración',[[fachada,-25.7],[64.4,-25.7],
-    [64.4,-22.1],[fachada,-22.1]]);
+  jardinCroquis('Franja verde transversal junto a Administración',[[fachada,-25.7],[finJardinAdministracion,-25.7],
+    [finJardinAdministracion,-22.1],[fachada,-22.1]]);
   jardinCroquis('Jardín posterior de Torre A',[[28,-38],[42.7,-38],[44,-35],[28,-35]],.86);
   descansoMacizo(acceso,{x:(37.25+43.7)/2,z:4.45,ancho:43.7-37.25,fondo:53.1,altura:alto})
     .name='Paseo continuo de las fachadas de Torre A';
@@ -487,11 +368,7 @@ function crearAccesoLateral(grupo){
   }
   for(let x=74.7;x<81.2;x+=1.1)bloque(acceso,{x,z:-20.95,y:alto+.006,ancho:.018,alto:.012,fondo:13.4,color:'#95999a',sombra:false});
   for(let z=-27.6;z<-14.1;z+=1.1)bloque(acceso,{x:77.9,z,y:alto+.007,ancho:6.7,alto:.012,fondo:.018,color:'#95999a',sombra:false});
-  descansoMacizo(acceso,{x:69.45,z:-20.5,ancho:10.1,fondo:5,altura:alto});
-  crearIngresoTerraza(acceso,{x:67.85,z:-22,baseY:alto,escalaX:.5,conectarCerco:false});
-  bloque(acceso,{x:72.95,z:-22.1,y:alto+1.45,ancho:2.9,alto:2.9,fondo:3.7,color:'#d4d6d4'}).name='Caja junto al ingreso peatonal';
-  bloque(acceso,{x:72.95,z:-20.22,y:alto+1.65,ancho:2.25,alto:1.05,fondo:.055,color:'#577581'}).name='Ventanilla de caja';
-  etiqueta(acceso,'Caja',72.95,alto+3.4,-22.1);
+  crearIngreso(acceso,{x:ingresoX,z:CONFIG.ingreso.z,baseY:alto});
 }
 function trazarMuro(grupo,x1,z1,x2,z2){
   const dx=x2-x1,dz=z2-z1;

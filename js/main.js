@@ -1,9 +1,9 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { CSS2DRenderer } from 'three/addons/renderers/CSS2DRenderer.js';
-import { CONFIG } from './config.js';
+import { CONFIG } from './config.js?v=ingreso-unificado-27';
 import { crearTorres } from './floors/registro.js';
-import { crearExteriores } from './exteriores.js?v=piso-horizontal-4';
+import { crearExteriores } from './exteriores.js?v=ingreso-unificado-28';
 import { crearRecorrido } from './recorrido.js?v=croquis-10nov';
 import { crearServicioElevadores } from './elevadores.js?v=relleno-elevadores-2';
 
@@ -88,6 +88,21 @@ function mostrarInfo(nombre,descripcion,torre,tipo){
   document.querySelector('#selected-category').textContent=tipo;
 }
 vistaGeneral();
+// En las vistas de detalle solo se muestra el nombre del edificio enfocado.
+let ladoIngreso=1;
+function encuadrarIngreso(lado){
+  ladoIngreso=lado;
+  // Las vistas de detalle siguen la posición del ingreso.
+  const x=CONFIG.ingreso.x+CONFIG.ingreso.desplazamientoX;
+  camara.position.set(x,4.5,CONFIG.ingreso.z+lado*16);
+  controles.target.set(x,CONFIG.baseY+2.15,CONFIG.ingreso.z);
+  controles.update();
+}
+document.addEventListener('click',e=>{
+  const boton=e.target.closest('button');
+  if(boton)visor.classList.toggle('ingreso-enfocado',
+    boton.id==='btn-ver-ingreso'||boton.id==='btn-ver-ingreso-exterior');
+});
 document.querySelector('#btn-ver-elevadores').addEventListener('click',()=>{
   recorrido.salir();
   const centro=zonaElevadores.grupo.getWorldPosition(new THREE.Vector3());
@@ -97,19 +112,15 @@ document.querySelector('#btn-ver-elevadores').addEventListener('click',()=>{
 });
 document.querySelector('#btn-ver-ingreso').addEventListener('click',()=>{
   recorrido.salir();
-  camara.position.set(68,11,-6);
-  controles.target.set(68,3.5,-22);
-  controles.update();
-  mostrarInfo('Ingreso peatonal · Interior','Cubierta panelada, portones blancos, siete torniquetes de acero, paso lateral, caseta de vigilancia y pavimento de piedra con canaleta.','ACCESO','INTERIOR');
+  encuadrarIngreso(1);
+  mostrarInfo('Ingreso · Parte trasera','Seis torniquetes de acero, paso lateral y arco detector. La caja y los portones forman un solo conjunto bajo la misma cubierta.','INGRESO','PARTE TRASERA');
   document.querySelectorAll('[data-focus]').forEach(b=>b.classList.remove('active'));
 });
 
 document.querySelector('#btn-ver-ingreso-exterior').addEventListener('click',()=>{
   recorrido.salir();
-  camara.position.set(68,7,-36);
-  controles.target.set(68,3.5,-22);
-  controles.update();
-  mostrarInfo('Ingreso peatonal · Exterior','Pórtico gris con juntas de revestimiento, portones enrejados y ventana exterior de vigilancia, según el video de referencia.','ACCESO','EXTERIOR');
+  encuadrarIngreso(-1);
+  mostrarInfo('Ingreso · Parte delantera','Caja integrada a la izquierda, ventanilla, rótulo del Centro Tecnológico, número 3365 y portones SENATI bajo una cubierta continua.','INGRESO','PARTE DELANTERA');
   document.querySelectorAll('[data-focus]').forEach(b=>b.classList.remove('active'));
 });
 
@@ -163,6 +174,7 @@ renderer.domElement.addEventListener('pointerup',e=>{
 function redimensionar(){
   const w=Math.max(1,visor.clientWidth),h=Math.max(1,visor.clientHeight);
   camara.aspect=w/h;camara.updateProjectionMatrix();
+  if(visor.classList.contains('ingreso-enfocado'))encuadrarIngreso(ladoIngreso);
   renderer.setSize(w,h);etiquetas.setSize(w,h);
 }
 const resizeObserver=new ResizeObserver(redimensionar);
