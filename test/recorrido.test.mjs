@@ -37,7 +37,8 @@ globalThis.document={createElement:()=>({style:{},getContext:()=>({fillText(){},
 const geometryUrl=moduleUrl(conThree(await source('js/geometria.js')).replace(
   "import { CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';",
   'class CSS2DObject extends THREE.Object3D {constructor(element){super();this.element=element;}}'));
-const exteriorUrl=moduleUrl(conThree(await source('js/exteriores.js')).replace("'./config.js'",JSON.stringify(configUrl)).replace("'./geometria.js'",JSON.stringify(geometryUrl)));
+const ingresoUrl=moduleUrl(conThree(await source('js/ingreso.js')).replace("'./geometria.js'",JSON.stringify(geometryUrl)));
+const exteriorUrl=moduleUrl(conThree(await source('js/exteriores.js')).replace(/'\.\/config\.js(?:\?[^']*)?'/,JSON.stringify(configUrl)).replace("'./geometria.js'",JSON.stringify(geometryUrl)).replace(/'\.\/ingreso\.js(?:\?[^']*)?'/,JSON.stringify(ingresoUrl)));
 const elevatorUrl=moduleUrl(conThree(await source('js/elevadores.js')).replace("'./config.js'",JSON.stringify(configUrl)).replace("'./geometria.js'",JSON.stringify(geometryUrl)).replace("'./exteriores.js'",JSON.stringify(exteriorUrl)));
 const floorUrl=moduleUrl(conThree(await source('js/floors/piso1.js')).replace("'../config.js'",JSON.stringify(configUrl)).replace("'../geometria.js'",JSON.stringify(geometryUrl)).replace("'../elevadores.js'",JSON.stringify(elevatorUrl)));
 const {crearExteriores}=await import(exteriorUrl),{crearPiso1}=await import(floorUrl),{CONFIG}=await import(configUrl);
@@ -98,7 +99,8 @@ for(const z of [-20.3,-18.8,-17.3,-15.8,-14.3]){
     assert(Math.abs(nav.altura(x,z,cotaPatio)-cotaPatio)<.001,'Patio completamente horizontal');
   }
 }
-for(const z of [-18.8,-15.8]){
+// El paso junto al ingreso sigue su posición y queda por delante de sus pilares.
+for(const z of [CONFIG.ingreso.z+3.2,-15.8]){
   p.set(63.8,cotaPatio,z);walk(nav,p,-.025,0,1000);
   assert(p.x<39&&Math.abs(p.y-cotaPatio)<.001,'Camina hasta Torre A sin cambiar de nivel');
   walk(nav,p,.025,0,1000);
