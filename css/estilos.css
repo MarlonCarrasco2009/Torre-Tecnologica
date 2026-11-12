@@ -87,3 +87,5 @@ button:focus-visible {outline:2px solid #9ceaff;outline-offset:3px;}
 @media(max-width:760px){.recorrido-hud{bottom:66px}.recorrido-identidad{position:absolute;left:0;bottom:98px}.recorrido-identidad strong{font-size:11px}.recorrido-mandos{justify-content:space-between;width:100%}.recorrido-acciones{grid-template-columns:repeat(2,auto)}.recorriendo .viewer-topline{top:63px;left:10px}.recorriendo .viewer-help{font-size:10px}}
 @media(max-width:1050px) {.layout{grid-template-columns:265px minmax(0,1fr)}.sidebar{padding:20px 12px}.stage{padding:12px}.viewer{min-height:450px}}
 @media(max-width:760px){.topbar{height:66px;padding:0 14px}.status{display:none}.brand h1{font-size:20px}.layout{display:flex;flex-direction:column}.sidebar{order:2;border-right:0;border-top:1px solid var(--line)}.stage{order:1}.viewer{height:62vh;min-height:380px}.viewer-help{font-size:10px;padding:7px 9px;white-space:normal;bottom:8px}.viewer-actions button span{display:none}.scene-subtitle{display:none}.selection-card{align-items:flex-start}}
+.viewer.ingreso-enfocado .zone-label:not(.ingreso-label),
+.viewer.ingreso-enfocado .tower-label { visibility: hidden; }
