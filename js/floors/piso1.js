@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { AMBIENTES,CONFIG,distribucionInterior } from '../config.js';
-import { bloque,placa,columna,etiqueta,paredVidrio,paredConPuertas,paredConPuerta,fachadaTorreA } from '../geometria.js';
+import { bloque,placa,columna,etiqueta,paredVidrio,paredConPuertas,paredConPuerta,fachadaTorreA } from '../geometria.js?v=puertas-estudiantes-96';
 import { crearZonaElevadores } from '../elevadores.js';
 
 // Devuelve un grupo independiente por torre: exactamente el PRIMER piso.
@@ -15,8 +15,18 @@ export function crearPiso1(torre, objetosSeleccionables, capaEtiquetas){
   const posicionZ=z=>z*factorZ+desplazamientoZ;
   // Base maciza elevada: la cara superior queda a la cota de llegada de las escaleras.
   const baseInferior=.08,superficie=CONFIG.baseY+.01;
-  bloque(grupo,{y:(baseInferior+superficie)/2,ancho:w,
-    alto:superficie-baseInferior,fondo:d,color:CONFIG.acabados.piso});
+  const base={y:(baseInferior+superficie)/2,
+    alto:superficie-baseInferior,fondo:d,color:CONFIG.acabados.piso};
+  if(torre.id==='A'){
+    // Dos partes contiguas: la textura se aplica a la propia base, sin láminas superpuestas.
+    const fachada=13*w/32,anchoPasillo=w/2-fachada;
+    bloque(grupo,{...base,x:(fachada-w/2)/2,ancho:fachada+w/2})
+      .name='Base del área abierta de Torre A';
+    bloque(grupo,{...base,x:(fachada+w/2)/2,ancho:anchoPasillo})
+      .name='Base del pasillo exterior de Torre A';
+  }else{
+    bloque(grupo,{...base,ancho:w});
+  }
 
   // Una columna gruesa en cada círculo del croquis: zonas abiertas de A y B.
   // Sustituye las filas de pilares delgados de esas dos torres.
@@ -24,6 +34,12 @@ export function crearPiso1(torre, objetosSeleccionables, capaEtiquetas){
     const soporte=bloque(grupo,{x:0,z:d/2-7,y:superficie+CONFIG.altoPiso/2,
       ancho:1.8,alto:CONFIG.altoPiso,fondo:1.8,color:CONFIG.acabados.columna});
     soporte.name=`Columna gruesa frontal - Torre ${torre.id}`;
+    if(torre.id==='A'){
+      // Alineada con la fachada lateral, según la guía transversal del patio.
+      bloque(grupo,{x:13*w/32,z:d/2-5.7,y:superficie+CONFIG.altoPiso/2,
+        ancho:2.8,alto:CONFIG.altoPiso,fondo:2.8,color:CONFIG.acabados.columna})
+        .name='Columna adicional junto al jardín frontal - Torre A';
+    }
   }else{
     // La cafetería queda abierta: se retiran sus cuatro columnas frontales.
     for(const x of [-w/2+.75,w/2-.75]){
