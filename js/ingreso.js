@@ -3,11 +3,17 @@ import { bloque, etiqueta } from './geometria.js';
 
 // Un solo edificio: fachada hacia -Z y torniquetes hacia el patio (+Z).
 // La caja queda a la izquierda al mirar la fachada desde fuera.
-export function crearIngreso(grupo,{x,z,baseY}){
+export function crearIngreso(grupo,{x,z,baseY,escalaAncho=1,bordeIzquierdo=-5.9,escalaFondo=1,bordeFrontal=-3.2,fondoLateral=6.38}){
   const ingreso=new THREE.Group();
   ingreso.name='Ingreso';ingreso.position.set(x,baseY,z);grupo.add(ingreso);
-  // En la vista lateral, el borde izquierdo (-Z) queda fijo y el derecho llega a la línea del pilar.
-  const limitePatio=2.2,recortePatio=3.2-limitePatio,centroFondo=-recortePatio/2;
+  // El borde izquierdo queda fijo y el extremo derecho llega a la línea marcada.
+  ingreso.scale.x=escalaAncho;
+  ingreso.position.x += bordeIzquierdo*(1-escalaAncho);
+  // El borde frontal queda fijo y el extremo posterior llega a la línea marcada.
+  ingreso.scale.z=escalaFondo;
+  ingreso.position.z += bordeFrontal*(1-escalaFondo);
+  const limitePatio=3.2,recortePatio=0,centroFondo=0;
+  const frenteLateral=-3.19,centroLateral=frenteLateral+fondoLateral/2;
   const aluminio=new THREE.MeshStandardMaterial({color:'#bfc2c6',metalness:.32,roughness:.48});
   const claro=new THREE.MeshStandardMaterial({color:'#d3d4d5',metalness:.18,roughness:.65});
   const acero=new THREE.MeshStandardMaterial({color:'#aeb8bd',metalness:.75,roughness:.29});
@@ -68,7 +74,7 @@ export function crearIngreso(grupo,{x,z,baseY}){
     pieza('Junta longitudinal de cielo raso',px,4.403,centroFondo,.009,.009,6.2-recortePatio,junta);
   }
   for(const pz of [-2.4,-1.2,0,1.2,2.4].filter(pz=>pz<limitePatio-.1))pieza('Junta transversal de cielo raso',0,4.403,pz,11.98,.009,.009,junta);
-  for(const px of [-5.5,2.0]){
+  for(const px of [2.0]){
     for(const pz of [-2.42,2.42-recortePatio]){
       pieza('Pilar del ingreso',px,2.22,pz,.4,4.44,.44);
       for(let py=.65;py<4.4;py+=.65){
@@ -76,10 +82,10 @@ export function crearIngreso(grupo,{x,z,baseY}){
       }
     }
   }
-  // El lateral izquierdo se prolonga hasta los dos extremos de la cubierta.
-  const lateralIngreso=pieza('Cerramiento lateral del pórtico',-5.5,2.22,centroFondo,.4,4.44,6.38-recortePatio);
+  // Se conserva el lateral reducido; solo se retiró el pilar independiente del extremo izquierdo.
+  const lateralIngreso=pieza('Cerramiento lateral del pórtico',-5.5,2.22,centroLateral,.4,4.44,fondoLateral);
   lateralIngreso.userData.sinColision=true;
-  for(let py=.65;py<4.4;py+=.65)pieza('Junta de lateral',-5.333,py,centroFondo,.008,.009,6.38-recortePatio,junta);
+  for(let py=.65;py<4.4;py+=.65)pieza('Junta de lateral',-5.333,py,centroLateral,.008,.009,fondoLateral,junta);
 
   // El lateral derecho se rellena de suelo a techo, a ras de sus pilares.
   pieza('Cerramiento lateral derecho del pórtico',5.5,2.22,centroFondo,.4,4.44,6.38-recortePatio);
@@ -175,6 +181,28 @@ export function crearIngreso(grupo,{x,z,baseY}){
   }
   pieza('Cabezal del detector',0,2.19,0,.86,.2,.38,oscuro,arco);
   pieza('Indicador del detector',0,2.19,.196,.42,.055,.012,aluminio,arco);
-  etiqueta(ingreso,'Ingreso',0,5.35,centroFondo,'zone','ingreso-label');
+  // Amplía el vano desde el lateral izquierdo fijo; la caja se traslada entera.
+  const ampliacion=2.4,izquierda=-5.5,derechaVano=2;
+  ingreso.updateWorldMatrix(true,true);
+  const inversaIngreso=ingreso.matrixWorld.clone().invert();
+  const punto=new THREE.Vector3();
+  ingreso.traverse(obj=>{
+    if(!obj.isMesh)return;
+    obj.geometry=obj.geometry.clone();
+    const localAIngreso=new THREE.Matrix4().multiplyMatrices(inversaIngreso,obj.matrixWorld);
+    const ingresoALocal=localAIngreso.clone().invert();
+    const posiciones=obj.geometry.attributes.position;
+    for(let i=0;i<posiciones.count;i++){
+      punto.fromBufferAttribute(posiciones,i).applyMatrix4(localAIngreso);
+      punto.x+=ampliacion*THREE.MathUtils.clamp((punto.x-izquierda)/(derechaVano-izquierda),0,1);
+      punto.applyMatrix4(ingresoALocal);
+      posiciones.setXYZ(i,punto.x,punto.y,punto.z);
+    }
+    posiciones.needsUpdate=true;
+    obj.geometry.computeVertexNormals();
+    obj.geometry.computeBoundingBox();
+    obj.geometry.computeBoundingSphere();
+  });
+  etiqueta(ingreso,'Ingreso',ampliacion/2,5.35,centroFondo,'zone','ingreso-label');
   return ingreso;
 }

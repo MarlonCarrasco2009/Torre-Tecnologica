@@ -221,9 +221,14 @@ export function fachadaTorreA(padre,{x,z,largo,baseY,tipo,alto=4.4}){
   const hojaGris=new THREE.MeshStandardMaterial({color:'#59616c',roughness:.55});
   const hoja=(centro,ancho,cristal,indice)=>{
     const g=new THREE.Group();g.name=cristal?`Hoja delgada de vidrio ${indice}`:`Puerta de conferencias ${indice}`;
-    const bisagra=cristal&&indice===2?1:-1;
-    g.position.x=centro+bisagra*ancho/2;g.rotation.y=-bisagra*Math.PI*(cristal?88:75)/180;
+    const bisagra=(cristal?indice===2:indice===2||indice===5)?1:-1;
+    // Holgura dentro del marco y bisagras opuestas en cada pareja.
+    ancho-=.1;
+    g.position.x=centro+bisagra*ancho/2;
+    g.rotation.y=0;
     g.userData={puerta:true,tipo:cristal?'vidrio':'opaca',centroVano:centro,ancho,espesor:cristal?.035:.065};fachada.add(g);
+    Object.assign(g.userData,{puertaAuditorio:!cristal,puertaInteractiva:true,abierta:false,
+      anguloAbierto:bisagra*Math.PI/2,colisionDinamica:true});
     const centroHoja=-bisagra*ancho/2;
     bloque(g,{x:centroHoja,y:altoPuerta/2,ancho:ancho-.045,alto:altoPuerta-.06,
       fondo:cristal?.035:.065,material:cristal?vidrio:hojaGris,sombra:!cristal});

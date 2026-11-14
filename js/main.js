@@ -1,10 +1,11 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { CSS2DRenderer } from 'three/addons/renderers/CSS2DRenderer.js';
-import { CONFIG } from './config.js?v=ingreso-unificado-27';
-import { crearTorres } from './floors/registro.js';
-import { crearExteriores } from './exteriores.js?v=ingreso-unificado-28';
-import { crearRecorrido } from './recorrido.js?v=croquis-10nov';
+import { CONFIG } from './config.js?v=rampas-concreto-claro-84';
+import { crearTorres } from './floors/registro.js?v=columna-alineada-a-112';
+import { crearExteriores } from './exteriores.js?v=cesped-sin-huecos-109';
+import { crearRecorrido } from './recorrido.js?v=puertas-auditorio-95';
+import { crearPuertasFachada } from './puertas.js?v=puertas-estudiantes-96';
 import { crearServicioElevadores } from './elevadores.js?v=relleno-elevadores-2';
 
 const visor=document.querySelector('#visor');
@@ -60,6 +61,7 @@ const capaEtiquetas=new THREE.Group();
 capaEtiquetas.name='Etiquetas';escena.add(capaEtiquetas);
 const {suelo,extras,perimetro}=crearExteriores(escena);
 const torres=crearTorres(escena,objetosSeleccionables,capaEtiquetas);
+const puertasFachada=crearPuertasFachada(escena);
 const zonaElevadores=escena.getObjectByName('Área de elevadores').userData.zonaElevadores;
 const elevadores=crearServicioElevadores(zonaElevadores);
 const recorrido=crearRecorrido({escena,camara,controles,canvas:renderer.domElement,
@@ -93,9 +95,11 @@ let ladoIngreso=1;
 function encuadrarIngreso(lado){
   ladoIngreso=lado;
   // Las vistas de detalle siguen la posición del ingreso.
-  const x=CONFIG.ingreso.x+CONFIG.ingreso.desplazamientoX;
-  camara.position.set(x,4.5,CONFIG.ingreso.z+lado*16);
-  controles.target.set(x,CONFIG.baseY+2.15,CONFIG.ingreso.z);
+  const x=CONFIG.ingreso.x+CONFIG.ingreso.desplazamientoX+
+    CONFIG.ingreso.bordeIzquierdo*(1-CONFIG.ingreso.escalaAncho);
+  const z=CONFIG.ingreso.z+CONFIG.ingreso.bordeFrontal*(1-CONFIG.ingreso.escalaFondo);
+  camara.position.set(x,4.5,z+lado*16*CONFIG.ingreso.escalaFondo);
+  controles.target.set(x,CONFIG.baseY+2.15,z);
   controles.update();
 }
 document.addEventListener('click',e=>{
@@ -155,12 +159,17 @@ const pointer=new THREE.Vector2();
 let alPulsar=null,seleccionado=null;
 renderer.domElement.addEventListener('pointerdown',e=>{alPulsar={x:e.clientX,y:e.clientY};});
 renderer.domElement.addEventListener('pointerup',e=>{
-  if(recorrido.activo)return;
   if(!alPulsar||Math.hypot(e.clientX-alPulsar.x,e.clientY-alPulsar.y)>6)return;
   const r=renderer.domElement.getBoundingClientRect();
   pointer.x=((e.clientX-r.left)/r.width)*2-1;
   pointer.y=-((e.clientY-r.top)/r.height)*2+1;
   raycaster.setFromCamera(pointer,camara);
+  // El primer objeto visible impide activar puertas a través de las paredes.
+  const visibles=[];
+  escena.traverseVisible(o=>{if(o.isMesh)visibles.push(o);});
+  const primerImpacto=raycaster.intersectObjects(visibles,false)[0];
+  if(primerImpacto&&puertasFachada.alternar(primerImpacto.object))return;
+  if(recorrido.activo)return;
   const impactos=raycaster.intersectObjects(objetosSeleccionables,false);
   if(!impactos.length)return;
   const objeto=impactos[0].object;
@@ -184,6 +193,7 @@ function animar(ahora=performance.now()){
   const transcurrido=Math.min(Math.max((ahora-ultimoTiempo)/1000,0),1);
   const dt=Math.min(transcurrido,.05);ultimoTiempo=ahora;
   requestAnimationFrame(animar);
+  puertasFachada.actualizar(dt);
   if(recorrido.activo)recorrido.actualizar(dt,transcurrido);
   else controles.update();
   renderer.render(escena,camara);

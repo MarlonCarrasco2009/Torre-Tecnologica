@@ -5,12 +5,12 @@ export const CONFIG = {
   extensionDerecha: 24.5,
   fondoCampus: 78,
   // x conserva el acceso del cerco; desplazamientoX mueve solo el edificio hacia el patio.
-  ingreso: { x: 69.45, z: -22, ancho: 1.8, desplazamientoX: -.6 },
+  ingreso: { x: 69.45, z: -20.5, ancho: 1.8, desplazamientoX: .1, desplazamientoMurosX: .8, escalaAncho: 1, bordeIzquierdo: -5.9, escalaFondo: 1, bordeFrontal: -3.2, fondoLateral: 4.2 },
   altoPiso: 4.4,
   baseY: 1.82,
   acabados: {
     piso: '#686d72',
-    rampa: '#92989d',
+    rampa: '#93999e',
     muro: '#e5e8ed',
     celosia: '#96958e',
     pared: '#465057',

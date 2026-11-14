@@ -2,7 +2,7 @@ import * as THREE from 'three';
 
 // Colisiones con la geometría existente: paredes, pilares, jardineras y escaleras.
 export function crearNavegacion(escena){
-  let objetos=[],cajas=[];
+  let objetos=[],cajas=[],dinamicos=[];
   function refrescar(){
     escena.updateMatrixWorld(true);objetos=[];
     const visitar=o=>{
@@ -11,12 +11,19 @@ export function crearNavegacion(escena){
       o.children.forEach(visitar);
     };
     visitar(escena);cajas=objetos.map(o=>new THREE.Box3().setFromObject(o));
+    dinamicos=[];
+    objetos.forEach((o,i)=>{
+      for(let padre=o;padre;padre=padre.parent){
+        if(padre.userData.colisionDinamica){dinamicos.push(i);break;}
+      }
+    });
   }
   refrescar();
   const rayo=new THREE.Raycaster(),abajo=new THREE.Vector3(0,-1,0);
   const normal=new THREE.Vector3(),origen=new THREE.Vector3();
   const radio=.29,escalon=.38;
   function cercanos(x,z,margen=1){
+    for(const i of dinamicos)cajas[i].setFromObject(objetos[i]);
     return objetos.filter((_,i)=>x>=cajas[i].min.x-margen&&x<=cajas[i].max.x+margen&&z>=cajas[i].min.z-margen&&z<=cajas[i].max.z+margen);
   }
   function altura(x,z,y){

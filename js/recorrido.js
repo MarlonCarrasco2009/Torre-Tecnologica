@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { CONFIG } from './config.js';
 import { crearPersonaje } from './personaje.js';
-import { crearNavegacion } from './navegacion.js';
+import { crearNavegacion } from './navegacion.js?v=puertas-auditorio-95';
 
 export function crearRecorrido({escena,camara,controles,canvas,visor,etiquetas,suelo,extras,perimetro,capaEtiquetas,elevadores}){
   const navegacion=crearNavegacion(escena);
