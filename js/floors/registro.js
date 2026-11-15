@@ -1,7 +1,7 @@
 import * as THREE from 'three';
-import { CONFIG } from '../config.js';
-import { crearPiso1 } from './piso1.js?v=columna-alineada-a-112';
-import { aplicarPiedraPisos } from '../piedra-piso.js?v=pizarra-pasillo-a-93';
+import { CONFIG } from '../config.js?v=video-1511-vegetacion';
+import { crearPiso1 } from './piso1.js?v=video-1511-vegetacion';
+import { aplicarPiedraPisos } from '../piedra-piso.js?v=video-1511-vegetacion';
 
 // Cada torre es un grupo independiente. Así se añaden pisos después.
 export function crearTorres(escena,seleccionables,capaEtiquetas){

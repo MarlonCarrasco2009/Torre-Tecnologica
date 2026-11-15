@@ -35,7 +35,7 @@ export const AMBIENTES = {
     { id:'c-servicios', nombre:'Ambientes C', tipo:'Ambiente por definir', x:0, z:-16.7, ancho:13.1, fondo:19, color:'#d8e6e3', paredes:['norte','oeste','este'], descripcion:'Ambientes de la parte posterior de la Torre C; se ajustarán con un plano más detallado.' }
   ],
   B: [
-    { id:'b-elevadores', nombre:'Elevadores', tipo:'Circulación vertical', x:0, z:18, ancho:13, fondo:9, recorteFrontal:2.2, color:'#d5e4f2', descripcion:'Cuatro elevadores con puertas animadas y acceso a los pisos 1 al 11; vestíbulo con vidrio de marco negro y jardín lateral en L con borde plomo.' },
+    { id:'b-elevadores', nombre:'Elevadores', tipo:'Circulación vertical', x:0, z:18, ancho:13, fondo:9, recorteFrontal:2.2, color:'#d5e4f2', descripcion:'Seis elevadores (cuatro a la izquierda y dos a la derecha desde el acceso de Torre A) con puertas animadas y acceso a los pisos 1 al 11; vestíbulo con vidrio de marco negro y jardín lateral en L con borde plomo.' },
     { id:'b-biblioteca', nombre:'Biblioteca', tipo:'Estudio', x:0, z:-1.5, ancho:13, fondo:22.5, color:'#d6e3fa', paredes:['este','oeste'], descripcion:'Biblioteca central indicada en el croquis.' },
     { id:'b-aula', nombre:'Aula', tipo:'Educación', x:0, z:-20, ancho:13, fondo:10, color:'#dce9f9', paredes:['norte','este','oeste'], descripcion:'Aula ubicada en el extremo posterior de la Torre B.' }
   ],

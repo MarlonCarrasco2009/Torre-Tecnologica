@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { bloque, etiqueta } from './geometria.js';
+import { bloque, etiqueta } from './geometria.js?v=video-1511-vegetacion';
 
 // Un solo edificio: fachada hacia -Z y torniquetes hacia el patio (+Z).
 // La caja queda a la izquierda al mirar la fachada desde fuera.

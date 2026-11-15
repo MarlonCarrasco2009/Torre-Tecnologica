@@ -1,7 +1,7 @@
 import * as THREE from 'three';
-import {CONFIG} from './config.js';
-import {bloque,placa,paredVidrio} from './geometria.js';
-import {jardinContorno} from './exteriores.js';
+import {CONFIG} from './config.js?v=video-1511-vegetacion';
+import {bloque,placa,paredVidrio} from './geometria.js?v=video-1511-vegetacion';
+import {jardinContorno} from './exteriores.js?v=video-1511-vegetacion';
 
 export const PISOS_ELEVADOR=11;
 const base=CONFIG.baseY+.085;
@@ -25,77 +25,94 @@ function rotulo(grupo,texto,x,y,z,rotacion=0){
   return m;
 }
 
-// Los extremos de vidrio siguen siendo accesos; el lateral sur se retranquea
-// en la esquina este para unir el muro blanco con la jardinera en L.
+// Mirando desde Torre A hacia Torre C: cuatro puertas a la izquierda (+Z)
+// y dos a la derecha (-Z), corrección del usuario el 15/11/2026.
+export const DISTRIBUCION_ELEVADORES={derecha:2,izquierda:4};
 export function crearZonaElevadores(padre,{x,z,ancho,fondo}){
   const grupo=new THREE.Group();grupo.name='Área de elevadores';grupo.position.set(x,0,z);padre.add(grupo);
-  const a=ancho/2,b=fondo/2;
-  const cabinas=[];
-  for(const signo of [-1,1])for(const cx of [-3.1,3.1]){
-    const cz=signo*(b-1.25),frente=-signo;
-    const cabina=new THREE.Group();cabina.name=`Cabina elevador ${cabinas.length+1}`;
-    cabina.position.set(cx,base,cz);grupo.add(cabina);
-    // Cabinas huecas, con suelo y laterales; no son los bloques macizos anteriores.
-    bloque(cabina,{y:-.07,ancho:3.2,alto:.14,fondo:2.2,color:CONFIG.acabados.piso});
-    for(const lado of [-1,1])bloque(cabina,{x:lado*1.55,y:1.42,ancho:.1,alto:2.84,fondo:2.2,color:'#242b33'});
-    bloque(cabina,{z:-frente*1.05,y:1.42,ancho:3.2,alto:2.84,fondo:.1,color:'#303b46'});
-    const techo=bloque(cabina,{y:2.9,ancho:3.2,alto:.12,fondo:2.2,color:'#141b22'});
-    bloque(cabina,{z:-frente*.98,y:1.05,ancho:2.7,alto:.06,fondo:.08,color:'#b4c0ca'});
-    cabinas.push({id:cabinas.length+1,x:cx,z:cz,frente,grupo:cabina,techo,piso:1});
+  const a=ancho/2,b=fondo/2,alto=4.1;
+  const acero=new THREE.MeshStandardMaterial({color:'#c3c6bd',metalness:.28,roughness:.34});
+  const lienzo=document.createElement('canvas');lienzo.width=256;lienzo.height=512;
+  const pincel=lienzo.getContext('2d');
+  for(let i=0;i<256;i++){
+    const tono=Math.round(180+18*Math.sin(i*.021)+5*Math.sin(i*2.7));
+    pincel.fillStyle=`rgb(${tono},${tono+2},${tono})`;pincel.fillRect(i,0,1,512);
   }
-  // Relleno vertical entre las cabinas izquierda y derecha de cada fila.
-  // Mantiene libre el pasillo central donde abren las puertas.
-  for(const signo of [-1,1]){
-    bloque(grupo,{x:0,y:base+1.6,z:signo*(b-1.25),
-      ancho:3,alto:3.2,fondo:2.2,color:CONFIG.acabados.pared});
+  const cepillado=new THREE.CanvasTexture(lienzo);cepillado.colorSpace=THREE.SRGBColorSpace;
+  const aceroPuertas=new THREE.MeshStandardMaterial({map:cepillado,metalness:.25,roughness:.34});
+  const pared='#77716b',cabinas=[];
+  for(const [signo,cantidad] of [[-1,DISTRIBUCION_ELEVADORES.derecha],[1,DISTRIBUCION_ELEVADORES.izquierda]]){
+    for(let i=0;i<cantidad;i++){
+      const cx=-a+(i+.5)*ancho/cantidad,cz=signo*(b-1.25),frente=-signo;
+      const cabina=new THREE.Group();cabina.name=`Cabina elevador ${cabinas.length+1}`;
+      cabina.position.set(cx,base,cz);grupo.add(cabina);
+      bloque(cabina,{y:-.07,ancho:2.65,alto:.14,fondo:2.2,color:'#b6b3a7'});
+      for(const lado of [-1,1])bloque(cabina,{x:lado*1.275,y:1.42,ancho:.1,alto:2.84,fondo:2.2,material:acero});
+      bloque(cabina,{z:-frente*1.05,y:1.42,ancho:2.65,alto:2.84,fondo:.1,material:acero});
+      const techo=bloque(cabina,{y:2.9,ancho:2.65,alto:.12,fondo:2.2,color:'#d9dad3'});
+      bloque(cabina,{z:-frente*.98,y:1.05,ancho:2.25,alto:.06,fondo:.08,material:acero});
+      cabinas.push({id:cabinas.length+1,x:cx,z:cz,frente,grupo:cabina,techo,piso:1,lado:signo<0?'derecha':'izquierda'});
+    }
   }
   const niveles=new Map();
   function crearNivel(piso){
     if(niveles.has(piso))return niveles.get(piso);
     const g=new THREE.Group();g.name=`Vestíbulo de elevadores - Piso ${piso}`;g.position.y=cotaPiso(piso);grupo.add(g);
-    const suelo=placa(g,{y:-.03,ancho,fondo,color:CONFIG.acabados.piso});
+    const suelo=placa(g,{y:-.03,ancho,fondo,color:'#8a8077'});
     if(piso>1)bloque(g,{y:-.19,ancho,alto:.32,fondo,color:'#aebcc7'});
-    bloque(g,{z:-b,y:1.6,ancho,alto:3.2,fondo:.3,color:CONFIG.acabados.pared});
-    bloque(g,{x:-.9,z:b,y:1.6,ancho:ancho-1.8,alto:3.2,fondo:.3,color:CONFIG.acabados.pared});
-    bloque(g,{x:a-1.8,z:b-.65,y:1.6,ancho:.3,alto:3.2,fondo:1.3,color:CONFIG.acabados.pared});
+    const franja=bloque(g,{y:.002,ancho,alto:.008,fondo:1.6,color:'#d8d0b4'});franja.name='Franja central clara del vestíbulo';franja.userData.sinColision=true;
+    for(let px=-a;px<a;px+=1.1){const junta=bloque(g,{x:px,y:.009,ancho:.015,alto:.003,fondo:1.6,color:'#aaa697'});junta.userData.sinColision=true;}
     for(const signo of [-1,1]){
-      bloque(g,{x:0,z:signo*(b-1.1),y:signo<0?1.6:.65,
-        ancho:.4,alto:signo<0?3.2:1.3,fondo:2.3,color:CONFIG.acabados.pared});
+      bloque(g,{z:signo*b,y:alto/2,ancho,alto,fondo:.22,color:pared});
+      const fila=cabinas.filter(c=>c.frente===-signo);
+      // Paños continuos entre vanos, también en el lado con solo dos ascensores.
+      let inicio=-a;
+      for(const c of fila){
+        const fin=c.x-.88;
+        if(fin>inicio)bloque(g,{x:(inicio+fin)/2,z:c.z+c.frente*1.12,y:alto/2,ancho:fin-inicio,alto,fondo:.25,color:pared});
+        bloque(g,{x:c.x,z:c.z+c.frente*1.12,y:(2.72+alto)/2,ancho:1.76,alto:alto-2.72,fondo:.25,color:pared});
+        inicio=c.x+.88;
+      }
+      if(inicio<a)bloque(g,{x:(inicio+a)/2,z:signo*(b-2.37),y:alto/2,ancho:a-inicio,alto,fondo:.25,color:pared});
     }
     if(piso===1){
-      paredVidrio(g,{x:-a,z:0,largo:fondo,baseY:0,alto:3.2,rotacion:-Math.PI/2,colorMarco:'#111820'});
-      paredVidrio(g,{x:a,z:-.65,largo:fondo-1.3,baseY:0,alto:3.2,rotacion:Math.PI/2,colorMarco:'#111820'});
+      for(const lado of [-1,1])paredVidrio(g,{x:lado*a,z:0,largo:fondo,baseY:0,alto,rotacion:lado*Math.PI/2,colorMarco:'#808c89'});
     }else{
-      // Vestíbulos elevados cerrados con vidrio: no hay puertas al vacío.
-      vidrioFijo(g,-a,0,fondo,3.2,Math.PI/2);
-      vidrioFijo(g,a,-.65,fondo-1.3,3.2,Math.PI/2);
-      bloque(g,{x:a-.9,z:b-.65,y:.65,ancho:1.8,alto:1.3,fondo:1.3,color:CONFIG.acabados.pared});
+      for(const lado of [-1,1])vidrioFijo(g,lado*a,0,fondo,alto,Math.PI/2);
     }
-    vidrioFijo(g,a-.9,b-1.3,1.8,3.2);
+    const cubierta=new THREE.Group();cubierta.name='Techo oscuro del vestíbulo';cubierta.visible=false;g.add(cubierta);
+    bloque(cubierta,{y:alto,ancho,alto:.1,fondo:Math.max(1,fondo-4.4),color:'#242b2a'});
+    for(let xx=-a;xx<a;xx+=.2)bloque(cubierta,{x:xx,y:alto-.07,ancho:.025,alto:.1,fondo:Math.max(1,fondo-4.5),color:'#404640'});
+    for(const zz of [-1,1])bloque(cubierta,{z:zz*(b-2.42),y:alto-.12,ancho,alto:.15,fondo:.13,color:'#dddcd1'});
+    for(let xx=-a+1;xx<a;xx+=2.8){
+      const luz=bloque(cubierta,{x:xx,y:alto-.14,ancho:.5,alto:.06,fondo:.22,color:'#fffce3'});
+      luz.material.emissive=new THREE.Color('#fff2c8');luz.material.emissiveIntensity=.8;
+    }
     const puertas=cabinas.map(c=>{
-      const portal=new THREE.Group();portal.position.set(c.x,0,c.z+c.frente*1.12);g.add(portal);
-      for(const lado of [-1,1]){
-        bloque(portal,{x:lado*1.2,y:1.42,ancho:.8,alto:2.84,fondo:.16,color:'#202831'});
-        bloque(portal,{x:lado*.8,y:1.32,ancho:.08,alto:2.64,fondo:.22,color:'#0c131b'});
-      }
-      const dintel=bloque(portal,{y:2.75,ancho:3.2,alto:.3,fondo:.22,color:'#161f29'});
-      const hojas=[-1,1].map(lado=>bloque(portal,{x:lado*.385,y:1.3,ancho:.77,alto:2.6,fondo:.09,color:'#8d9daa'}));
-      const indicador=rotulo(portal,`${c.id} · ${piso}`,0,3.08,c.frente*.14,c.frente<0?Math.PI:0);
-      const boton=bloque(portal,{x:1.12,y:1.22,z:c.frente*.14,ancho:.17,alto:.32,fondo:.06,color:'#15283a'});
-      bloque(portal,{x:1.12,y:1.22,z:c.frente*.18,ancho:.07,alto:.07,fondo:.02,color:'#71dff5'});
-      boton.userData.elevador=c.id;
+      const portal=new THREE.Group();portal.name=`Portal ascensor ${c.id} · ${c.lado}`;portal.position.set(c.x,0,c.z+c.frente*1.12);g.add(portal);
+      for(const lado of [-1,1])bloque(portal,{x:lado*.84,y:1.35,ancho:.1,alto:2.7,fondo:.24,material:acero});
+      const dintel=bloque(portal,{y:2.72,ancho:1.78,alto:.14,fondo:.24,material:acero});
+      const hojas=[-1,1].map(lado=>{
+        const hoja=bloque(portal,{x:lado*.385,y:1.3,ancho:.755,alto:2.6,fondo:.09,material:aceroPuertas});
+        bloque(hoja,{x:-lado*.372,y:0,z:c.frente*.05,ancho:.012,alto:2.6,fondo:.012,color:'#4a504d'});
+        return hoja;
+      });
+      const umbral=bloque(portal,{y:.013,ancho:1.65,alto:.025,fondo:.25,material:acero});umbral.userData.sinColision=true;
+      const indicador=rotulo(portal,`${c.id} · ${piso}`,0,2.96,c.frente*.14,c.frente<0?Math.PI:0);
+      const boton=bloque(portal,{x:1.15,y:1.22,z:c.frente*.17,ancho:.18,alto:.4,fondo:.06,material:acero});boton.userData.elevador=c.id;
+      for(const y of [1.14,1.3])bloque(portal,{x:1.15,y,z:c.frente*.21,ancho:.065,alto:.065,fondo:.025,color:'#d8eee4'});
+      // Señal roja y blanca junto a cada puerta, visible en el video.
+      bloque(portal,{x:1.15,y:2.22,z:c.frente*.17,ancho:.22,alto:.35,fondo:.02,color:'#e5e2d9'});
+      bloque(portal,{x:1.15,y:2.12,z:c.frente*.19,ancho:.22,alto:.1,fondo:.02,color:'#ae3d46'});
       return {hojas,abierto:0,dintel,indicador};
     });
-    const nivel={grupo:g,suelo,puertas};niveles.set(piso,nivel);return nivel;
+    const nivel={grupo:g,suelo,puertas,cubierta};niveles.set(piso,nivel);return nivel;
   }
   const plantaBaja=crearNivel(1);
-  // Amplía otro 50% el ancho de la franja hacia afuera, con borde negro.
   const limiteJardin=.16+(3.5-.16)*1.5;
   jardinContorno(grupo,[[-a,b+.16],[a-1.96,b+.16],[a-1.96,b-1.15],
     [a-.04,b-1.15],[a-.04,b+limiteJardin],[-a,b+limiteJardin]],base+.18,.65,'#08090b');
-  const datos={grupo,ancho,fondo,cabinas,niveles,crearNivel,plantaBaja};
-  grupo.userData.zonaElevadores=datos;
-  return datos;
+  const datos={grupo,ancho,fondo,cabinas,niveles,crearNivel,plantaBaja};grupo.userData.zonaElevadores=datos;return datos;
 }
 
 // Máquina de estados independiente del DOM: llamada, puertas, entrada, viaje y salida.

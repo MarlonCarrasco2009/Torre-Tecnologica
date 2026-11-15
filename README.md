@@ -1,6 +1,6 @@
 # SENATI 3D — Torres Tecnológicas (planta baja)
 
-**Versión:** 0.3, patio de Torre A actualizado al croquis del 10 de noviembre de 2026.
+**Versión:** 0.4, patio de Torre A actualizado al croquis del 10 de noviembre de 2026.
 
 Esta maqueta en HTML, CSS, JavaScript y **Three.js** dibuja el **primer piso de las tres torres** y permite recorrer los **vestíbulos de elevadores del piso 1 al 11**:
 
@@ -41,7 +41,7 @@ No abras `index.html` haciendo doble clic: un servidor local evita problemas con
 - También hay botones en pantalla: mantén las flechas para moverte, activa **Correr** para cambiar la velocidad y pulsa **Saludar**. Funcionan con ratón y pantalla táctil.
 - **Esc**, **Salir del recorrido** o **Volver a la maqueta** restauran la cámara y las capas anteriores. **Volver al inicio** devuelve al personaje a la zona abierta de la Torre A.
 - El personaje tiene animaciones de reposo, caminata, carrera y saludo; sigue el desnivel de rampas y escalones. Las colisiones impiden atravesar muros, columnas y jardineras o abandonar un borde alto.
-- **Ver área de elevadores** enfoca las cuatro cabinas, las paredes de vidrio con marcos negros y el jardín lateral en L.
+- **Ver área de elevadores** enfoca las seis cabinas, las paredes de vidrio con marcos negros y el jardín lateral en L.
 - **Ver ingreso · Parte delantera / Parte trasera** muestra el edificio unificado: caja integrada, portones y una sola marquesina. La fachada tiene ventanilla y rótulos del campus; por detrás hay seis torniquetes, paso lateral y arco detector, según las referencias del 12 de noviembre de 2026. La etiqueta del conjunto es **Ingreso**. Su geometría se edita en `js/ingreso.js`.
 - **Ir a los elevadores · Pisos 1–11** inicia el recorrido dentro del vestíbulo. Acércate a una cabina y pulsa **F** o **Entrar al elevador**. Las puertas se abren y el personaje entra; elige un número del **1 al 11** en la botonera.
 - Durante el viaje se cierran las puertas, asciende o desciende la cabina con el personaje y se muestra el piso actual. Al llegar, **Salir al piso** permite recorrer el vestíbulo y volver a llamar una cabina. Los niveles superiores tienen cerramientos para impedir salir al vacío.
@@ -152,4 +152,23 @@ Referencia conservada en `assets/croquis-torre-a-2026-11-10.png`. Las medidas si
 - El recorrido comienza dentro del acceso frontal. Se mantienen las torres B y C y el funcionamiento de sus elevadores.
 - El piso entre el ingreso peatonal y Torre A es completamente horizontal a la cota 1.83, con relleno macizo. El paso central entre jardines y el pavimento de piedra del ingreso comparten esa altura. Se eliminaron la depresión, la pendiente de enlace y la escalera posterior que ya no tenía desnivel que salvar.
 
-Validación: `tests/recorrido.test.mjs` comprueba el paso por las siete hojas, la subida y bajada por todos los carriles de las escaleras, las parejas orientadas hacia las torres con baranda central, la rampa izquierda de recorrido continuo, la altura uniforme del patio y del pasillo central, las colisiones y los cuatro elevadores entre los pisos 1 y 11. Ejecutar con `node tests/recorrido.test.mjs RUTA/three.core.mjs`, usando Three.js 0.180.0.
+Validación: `test/recorrido.test.mjs` comprueba el paso por las siete hojas, la subida y bajada por todos los carriles de las escaleras, las parejas orientadas hacia las torres con baranda central, la rampa izquierda de recorrido continuo, la altura uniforme del patio y del pasillo central, las colisiones y los seis elevadores entre los pisos 1 y 11. Ejecutar con `node test/recorrido.test.mjs RUTA/three.core.mjs`, usando Three.js 0.180.0.
+
+
+## Referencias de video · 15 de noviembre de 2026
+
+- Vestíbulo de seis ascensores: cuatro a la izquierda y dos a la derecha, mirando desde el acceso de Torre A hacia Torre C. Cantidad confirmada por el propietario; acabados basados en el video: acero, paredes gris cálido, franja central clara y techo oscuro con luminarias.
+- Lateral oeste de Torre C: jardín rectangular elevado con sectores verdes y morados, piedras, canaleta, paso continuo junto a la fachada, comedor con mesas claras, sillas azules, lona tensada y carros portabandejas. Sustituye las jardineras, rampa y mesas esquemáticas anteriores de ese lateral.
+- Botones «Ver interior · 6 ascensores», «Ver jardín y comedor · Torre C» y «Recorrer lateral · Torre C» para inspeccionar los cambios.
+- Las dimensiones, distancias, cantidad de mesas y detalle de vegetación se interpretan visualmente; los videos no aportan medidas. No se han incorporado rostros, personas ni videos al repositorio.
+
+Prueba de esta actualización: guardar `https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.core.js` como `.preview/three.core.mjs` y ejecutar `node test/videos-noviembre.test.mjs` con Node 24. La carpeta `.preview` es local y no se publica.
+
+
+### Acceso posterior al subterráneo · Torre C
+
+La rampa comienza en la reja posterior y baja hacia el interior de SENATI (+Z), dentro del lateral C. Mirando desde la entrada hacia dentro, la caseta acristalada queda a la izquierda y la rampa a la derecha, con la barrera junto al control. El acceso peatonal permanece a nivel del campus, sin escaleras. Las plantas forman un contorno rectangular que abraza ambos costados y el fondo de la rampa, con la abertura orientada hacia la entrada. El terreno se recorta para permitir el descenso real. El botón «Ver acceso al subterráneo · C» encuadra el conjunto. La profundidad, la caseta y el tramo inferior son aproximaciones basadas en la descripción del propietario; el video solo muestra parcialmente esa zona.
+
+El frente de la rampa tiene base maciza hasta el terreno. El cerramiento de zócalo blanco y panel gris ranurado continúa alrededor del acceso vehicular, la caseta de registro y el paso peatonal, conservando libres la ventanilla y los vanos. La caseta queda integrada en la línea frontal del cerco.
+
+La jardinera junto a la rampa se amplió hasta alinearse con el borde del jardín delantero, manteniendo libre el pasillo junto a la torre. La vegetación usa hojas con variaciones de tamaño, orientación y color; se ajustaron los materiales de concreto, la luz diurna y las sombras.

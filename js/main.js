@@ -1,12 +1,12 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { CSS2DRenderer } from 'three/addons/renderers/CSS2DRenderer.js';
-import { CONFIG } from './config.js?v=rampas-concreto-claro-84';
-import { crearTorres } from './floors/registro.js?v=columna-alineada-a-112';
-import { crearExteriores } from './exteriores.js?v=cesped-sin-huecos-109';
-import { crearRecorrido } from './recorrido.js?v=puertas-auditorio-95';
-import { crearPuertasFachada } from './puertas.js?v=puertas-estudiantes-96';
-import { crearServicioElevadores } from './elevadores.js?v=relleno-elevadores-2';
+import { CONFIG } from './config.js?v=video-1511-vegetacion';
+import { crearTorres } from './floors/registro.js?v=video-1511-vegetacion';
+import { crearExteriores } from './exteriores.js?v=video-1511-vegetacion';
+import { crearRecorrido } from './recorrido.js?v=video-1511-vegetacion';
+import { crearPuertasFachada } from './puertas.js?v=video-1511-vegetacion';
+import { crearServicioElevadores } from './elevadores.js?v=video-1511-vegetacion';
 
 const visor=document.querySelector('#visor');
 const error=document.querySelector('#error');
@@ -23,7 +23,7 @@ renderer.shadowMap.enabled=true;
 renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 renderer.outputColorSpace=THREE.SRGBColorSpace;
 renderer.toneMapping=THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure=1.35;
+renderer.toneMappingExposure=1.05;
 visor.prepend(renderer.domElement);
 
 const etiquetas=new CSS2DRenderer();
@@ -35,8 +35,8 @@ etiquetas.domElement.style.pointerEvents='none';
 visor.appendChild(etiquetas.domElement);
 
 const escena=new THREE.Scene();
-escena.background=new THREE.Color('#273b4e');
-escena.fog=new THREE.Fog('#273b4e',155,275);
+escena.background=new THREE.Color('#c9d6dc');
+escena.fog=new THREE.Fog('#c9d6dc',170,310);
 const camara=new THREE.PerspectiveCamera(48,visor.clientWidth/Math.max(1,visor.clientHeight),.1,450);
 const controles=new OrbitControls(camara,renderer.domElement);
 controles.enableDamping=true;
@@ -46,14 +46,14 @@ controles.maxDistance=180;
 controles.maxPolarAngle=Math.PI/2-0.04;
 controles.target.set(0,0,0);
 
-escena.add(new THREE.HemisphereLight('#e7f5ff','#607080',2.25));
-const sol=new THREE.DirectionalLight('#fff7eb',2.9);
+escena.add(new THREE.HemisphereLight('#e7f1f7','#858173',1.8));
+const sol=new THREE.DirectionalLight('#fff5e5',2.7);
 sol.position.set(-48,90,45);
 sol.castShadow=true;
-sol.shadow.mapSize.set(2048,2048);
+sol.shadow.mapSize.set(4096,4096);
 sol.shadow.camera.left=-88;sol.shadow.camera.right=88;
 sol.shadow.camera.top=88;sol.shadow.camera.bottom=-88;
-sol.shadow.normalBias=.04;
+sol.shadow.normalBias=.025;sol.shadow.bias=-.0001;
 escena.add(sol);
 
 const objetosSeleccionables=[];
@@ -64,11 +64,12 @@ const torres=crearTorres(escena,objetosSeleccionables,capaEtiquetas);
 const puertasFachada=crearPuertasFachada(escena);
 const zonaElevadores=escena.getObjectByName('Área de elevadores').userData.zonaElevadores;
 const elevadores=crearServicioElevadores(zonaElevadores);
+let interiorElevadores=false;
 const recorrido=crearRecorrido({escena,camara,controles,canvas:renderer.domElement,
   visor,etiquetas,suelo,extras,perimetro,capaEtiquetas,elevadores});
 
 function vistaGeneral(){
-  recorrido.salir();
+  recorrido.salir();controles.minDistance=15;interiorElevadores=false;
   camara.position.set(75,85,105);
   controles.target.set(0,.2,0);
   controles.update();
@@ -104,6 +105,8 @@ function encuadrarIngreso(lado){
 }
 document.addEventListener('click',e=>{
   const boton=e.target.closest('button');
+  if(boton){camara.fov=boton.id==='btn-interior-elevadores'?75:48;camara.updateProjectionMatrix();}
+  if(boton && !boton.closest('#elevador-panel'))interiorElevadores=boton.id==='btn-interior-elevadores';
   if(boton)visor.classList.toggle('ingreso-enfocado',
     boton.id==='btn-ver-ingreso'||boton.id==='btn-ver-ingreso-exterior');
 });
@@ -112,8 +115,42 @@ document.querySelector('#btn-ver-elevadores').addEventListener('click',()=>{
   const centro=zonaElevadores.grupo.getWorldPosition(new THREE.Vector3());
   camara.position.set(centro.x+18,22,centro.z+22);
   controles.target.set(centro.x,CONFIG.baseY+1,centro.z);controles.update();
-  mostrarInfo('Elevadores · Torre B','Cuatro cabinas, jardín en L y acceso de vidrio con marcos negros. Entra en tercera persona para viajar del piso 1 al 11.','TORRE B','ELEVADORES');
+  mostrarInfo('Elevadores · Torre B','Seis cabinas: cuatro a la izquierda y dos a la derecha desde Torre A. Puertas de acero, paredes cálidas y franja central clara. Entra en tercera persona para viajar del piso 1 al 11.','TORRE B','ELEVADORES');
 });
+document.querySelector('#btn-interior-elevadores').addEventListener('click',()=>{
+  recorrido.salir();interiorElevadores=true;controles.minDistance=.5;
+  const punto=zonaElevadores.grupo.localToWorld(new THREE.Vector3(zonaElevadores.ancho/2-.65,CONFIG.baseY+1.75,0));
+  camara.position.copy(punto);controles.target.copy(punto).add(new THREE.Vector3(-10,0,0));controles.update();
+  capaEtiquetas.visible=false;document.querySelector('#toggle-etiquetas').checked=false;
+  mostrarInfo('Vestíbulo · 6 ascensores','Cuatro a la izquierda y dos a la derecha. Puertas metálicas, franja clara central y techo oscuro con luminarias, según el video.','TORRE B','INTERIOR');
+});
+document.querySelector('#btn-lateral-c').addEventListener('click',()=>{
+  recorrido.salir();controles.minDistance=3;
+  camara.position.set(-84,58,62);controles.target.set(-47,2,5);controles.update();
+  capaEtiquetas.visible=false;document.querySelector('#toggle-etiquetas').checked=false;
+  mostrarInfo('Jardín y comedor · Torre C','Jardinera de plantas verdes y moradas con piedras, pasillo de piedra, fachada de vidrio y comedor con sillas azules bajo lona tensada.','TORRE C','LATERAL');
+});
+document.querySelector('#btn-comedor-c').addEventListener('click',()=>{
+  recorrido.salir();controles.minDistance=.5;
+  camara.position.set(-40.3,CONFIG.baseY+2.3,14.1);controles.target.set(-47,CONFIG.baseY+1.5,27);controles.update();
+  capaEtiquetas.visible=false;document.querySelector('#toggle-etiquetas').checked=false;
+  mostrarInfo('Comedor exterior · Torre C','Mesas claras, sillas azules y fachada acristalada bajo una lona tensada, junto al jardín ornamental.','TORRE C','COMEDOR');
+});
+
+document.querySelector('#btn-subterraneo-c').addEventListener('click',()=>{
+  recorrido.salir();controles.minDistance=3;
+  camara.position.set(-40,35,-56);controles.target.set(-48,2,-20);controles.update();
+  capaEtiquetas.visible=false;document.querySelector('#toggle-etiquetas').checked=false;
+  mostrarInfo('Acceso al subterráneo · Torre C','Desde la entrada: caseta de registro a la izquierda y rampa a la derecha, hacia el interior. Las plantas rodean la rampa. El frente está cerrado hasta el suelo y el cerco blanco y gris integra la caseta y ambos accesos.','TORRE C','SUBTERRÁNEO');
+});
+
+document.querySelector('#btn-cerco-c').addEventListener('click',()=>{
+  recorrido.salir();controles.minDistance=3;
+  camara.position.set(-47,7,-59);controles.target.set(-47,2.8,-38);controles.update();
+  capaEtiquetas.visible=false;document.querySelector('#toggle-etiquetas').checked=false;
+  mostrarInfo('Entrada y caseta · Torre C','Cerco continuo blanco y gris, base cerrada hasta el suelo, caseta de control a la izquierda y acceso vehicular a la derecha.','TORRE C','VISTA EXTERIOR');
+});
+
 document.querySelector('#btn-ver-ingreso').addEventListener('click',()=>{
   recorrido.salir();
   encuadrarIngreso(1);
@@ -196,6 +233,7 @@ function animar(ahora=performance.now()){
   puertasFachada.actualizar(dt);
   if(recorrido.activo)recorrido.actualizar(dt,transcurrido);
   else controles.update();
+  for(const nivel of zonaElevadores.niveles.values())nivel.cubierta.visible=recorrido.activo||interiorElevadores;
   renderer.render(escena,camara);
   etiquetas.render(escena,camara);
 }

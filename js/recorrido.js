@@ -1,7 +1,7 @@
 import * as THREE from 'three';
-import { CONFIG } from './config.js';
-import { crearPersonaje } from './personaje.js';
-import { crearNavegacion } from './navegacion.js?v=puertas-auditorio-95';
+import { CONFIG } from './config.js?v=video-1511-vegetacion';
+import { crearPersonaje } from './personaje.js?v=video-1511-vegetacion';
+import { crearNavegacion } from './navegacion.js?v=video-1511-vegetacion';
 
 export function crearRecorrido({escena,camara,controles,canvas,visor,etiquetas,suelo,extras,perimetro,capaEtiquetas,elevadores}){
   const navegacion=crearNavegacion(escena);
@@ -91,6 +91,13 @@ export function crearRecorrido({escena,camara,controles,canvas,visor,etiquetas,s
     avatar.grupo.rotation.y=-Math.PI/2;yaw=-Math.PI/2;pitch=.42;distancia=4;
     navegacion.refrescar();actualizarCamara(0,true);canvas.focus({preventScroll:true});
   }
+  document.querySelector('#btn-recorrer-c').addEventListener('click',()=>{
+    if(!activo)cambiar(true);
+    limpiar();elevadores.reiniciar();
+    avatar.grupo.position.set(-39.7,CONFIG.baseY+.01,12.5);
+    avatar.grupo.rotation.y=Math.PI;yaw=0;pitch=.18;distancia=3.2;
+    navegacion.refrescar();actualizarCamara(0,true);canvas.focus({preventScroll:true});
+  });
   document.querySelector('#btn-ir-elevadores').addEventListener('click',irElevadores);
   document.querySelector('#recorrido-elevadores').addEventListener('click',irElevadores);
   usarElevador.addEventListener('click',entrarElevador);

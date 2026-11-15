@@ -1,7 +1,7 @@
 import * as THREE from 'three';
-import { AMBIENTES,CONFIG,distribucionInterior } from '../config.js';
-import { bloque,placa,columna,etiqueta,paredVidrio,paredConPuertas,paredConPuerta,fachadaTorreA } from '../geometria.js?v=puertas-estudiantes-96';
-import { crearZonaElevadores } from '../elevadores.js';
+import { AMBIENTES,CONFIG,distribucionInterior } from '../config.js?v=video-1511-vegetacion';
+import { bloque,placa,columna,etiqueta,paredVidrio,paredConPuertas,paredConPuerta,fachadaTorreA } from '../geometria.js?v=video-1511-vegetacion';
+import { crearZonaElevadores } from '../elevadores.js?v=video-1511-vegetacion';
 
 // Devuelve un grupo independiente por torre: exactamente el PRIMER piso.
 // Los demás niveles los crearán otros compañeros en módulos diferentes.
@@ -76,6 +76,7 @@ export function crearPiso1(torre, objetosSeleccionables, capaEtiquetas){
     const paredMat=new THREE.MeshStandardMaterial({color:CONFIG.acabados.pared,roughness:.83});
     const p=ambiente.paredes||[];
     const ladosPared=new Set(p);
+    if(ambiente.id==='c-cafeteria')ladosPared.delete('oeste');
     // También se retira la viga/muro horizontal oscuro de la cafetería.
     if(ladosPared.has('norte')&&ambiente.id!=='c-cafeteria') bloque(grupo,{x,y:alturaCentro,z:z-fondo/2,ancho,alto:h,fondo:espesor,material:paredMat});
     if(ladosPared.has('sur')) bloque(grupo,{x,y:alturaCentro,z:z+fondo/2,ancho,alto:h,fondo:espesor,material:paredMat});

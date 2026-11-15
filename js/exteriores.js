@@ -1,10 +1,13 @@
 import * as THREE from 'three';
-import { CONFIG } from './config.js?v=rampas-concreto-claro-84';
-import { crearIngreso } from './ingreso.js?v=ingreso-ampliado-derecha-70';
-import { bloque,placa,columna,etiqueta } from './geometria.js';
-import { aplicarPiedraPisos } from './piedra-piso.js?v=pizarra-pasillo-a-93';
-import { aplicarCesped } from './cesped.js';
-import { aplicarCementoMuros } from './cemento.js';
+import { CONFIG } from './config.js?v=video-1511-vegetacion';
+import { crearIngreso } from './ingreso.js?v=video-1511-vegetacion';
+import { bloque,placa,columna,etiqueta } from './geometria.js?v=video-1511-vegetacion';
+import { aplicarPiedraPisos } from './piedra-piso.js?v=video-1511-vegetacion';
+import { aplicarCesped } from './cesped.js?v=video-1511-vegetacion';
+import { aplicarCementoMuros } from './cemento.js?v=video-1511-vegetacion';
+import { crearLateralC } from './lateral-c.js?v=video-1511-vegetacion';
+import { crearSubterraneoC,pisoConHueco,HUECO_C,ACCESO_C } from './subterraneo-c.js?v=video-1511-vegetacion';
+import { aplicarAcabadosLateral } from './acabados-lateral.js?v=video-1511-vegetacion';
 
 const pavimento=CONFIG.acabados.piso;
 const pavimentoRampa=CONFIG.acabados.rampa;
@@ -675,8 +678,27 @@ function crearPerimetro(grupo){
   const separacionMuroIngreso=.8;
   const limiteTopico=CONFIG.torres.A.x+CONFIG.torres.A.ancho/2;
   const muroFrontalIngreso=trazarMuroPerimetral(
-    -x+separacionMuroIngreso,-z,
+    -38,-z,
     limiteTopico,-z);
+  // Cerco continuo alrededor de los tres elementos del acceso C: vano
+  // vehicular, ventanilla de control y paso peatonal. Misma base blanca
+  // y panel gris ranurado que los costados; los vanos quedan despejados.
+  const {x:rampaX,ancho:anchoRampa,xCaseta,xPeaton}=ACCESO_C;
+  const cercoC=new THREE.Group();cercoC.name='Cerco integrado del acceso de Torre C';grupo.add(cercoC);
+  const tramosC=[[-x+separacionMuroIngreso,rampaX-anchoRampa/2],
+    [rampaX+anchoRampa/2,xCaseta-1.25],
+    [xCaseta+1.25,xPeaton-1],[xPeaton+1,-38]];
+  for(const [desde,hasta] of tramosC){
+    const tramo=trazarMuro(cercoC,desde,-z,hasta,-z);
+    tramo.scale.y=escalaAlturaCerco;
+  }
+  // Remates superiores unen el cerramiento sin ocultar la caseta ni los rótulos.
+  const coronacion=(.08+1.7+1.5)*escalaAlturaCerco;
+  for(const [centro,ancho,base] of [[rampaX,anchoRampa,coronacion-.28],
+    [xCaseta,2.5,ACCESO_C.nivel+2.47],[xPeaton,2,ACCESO_C.nivel+2.89]]){
+    bloque(cercoC,{x:centro,z:-z,y:(coronacion+base)/2,ancho,alto:coronacion-base,fondo:.3,
+      color:CONFIG.acabados.celosia}).name='Panel de cemento del cerco';
+  }
   if(muroFrontalIngreso)muroFrontalIngreso.name='Muro frontal del Ingreso separado';
   trazarMuroPerimetral(-x,-z,-x,z);
   // El lateral derecho se acorta solo por arriba, conservando fijo el tramo hacia Acceso.
@@ -777,14 +799,15 @@ export function crearExteriores(escena){
     piso.name=nombre;
     return piso;
   };
-  placa(suelo,{x:0,y:-.22,z:0,ancho:CONFIG.anchoCampus+90,fondo:CONFIG.fondoCampus+85,color:'#314254'});
-  bloque(suelo,{x:CONFIG.extensionDerecha/2,y:-.13,z:0,ancho:CONFIG.anchoCampus+CONFIG.extensionDerecha,alto:.23,fondo:CONFIG.fondoCampus,color:pavimento,sombra:false});
+  const huecoSubterraneo=HUECO_C;
+  pisoConHueco(suelo,{x:0,y:-.22,z:0,ancho:CONFIG.anchoCampus+90,fondo:CONFIG.fondoCampus+85,alto:.06,color:'#8a9390'},huecoSubterraneo);
+  pisoConHueco(suelo,{x:CONFIG.extensionDerecha/2,y:-.13,z:0,ancho:CONFIG.anchoCampus+CONFIG.extensionDerecha,alto:.23,fondo:CONFIG.fondoCampus,color:pavimento},huecoSubterraneo);
   // Amplia plaza peatonal que conecta las tres torres.
   placa(suelo,{x:0,y:.08,z:15,ancho:90,fondo:42,color:pavimento});
-  placa(suelo,{x:0,y:.08,z:-24,ancho:96,fondo:17,color:pavimento});
+  pisoConHueco(suelo,{x:0,y:.08,z:-24,ancho:96,fondo:17,alto:.06,color:pavimento},HUECO_C);
   placa(suelo,{x:0,y:.08,z:33,ancho:77,fondo:9,color:pavimento});
   // Caminos exteriores detrás de las torres.
-  placa(suelo,{x:-44,y:.1,z:0,ancho:12,fondo:65,color:pavimento});
+  pisoConHueco(suelo,{x:-44,y:.1,z:0,ancho:12,fondo:65,alto:.06,color:pavimento},HUECO_C);
   placa(suelo,{x:47.8+CONFIG.extensionDerecha/2,y:.1,z:0,ancho:20+CONFIG.extensionDerecha,fondo:77.5,color:pavimento});
   // Corredores macizos: misma base y superficie que las torres, hasta el cerco.
   for(const [izquierda,derecha] of [['C','B'],['B','A']]){
@@ -794,30 +817,16 @@ export function crearExteriores(escena){
       {x:(inicio+fin)/2,z:0,ancho:fin-inicio,fondo:CONFIG.fondoCampus,color:pavimento});
   }
 
-  // Piso lateral marcado junto a cocina y cafetería, unido a la base de Torre C.
-  // Empieza después del jardín pequeño para no cubrir sus áreas verdes.
-  const bordeC=CONFIG.torres.C.x-CONFIG.torres.C.ancho/2;
-  pisoMacizo('Piso lateral elevado junto a cocina',
-    {x:(-50+bordeC)/2,z:10,ancho:bordeC+50,fondo:11,color:pavimento});
-  pisoMacizo('Terraza comedor elevada junto a Torre C',
-    {x:(-52+bordeC)/2,z:24,ancho:bordeC+52,fondo:17,color:pavimento});
-  const elevacionMesas=nivelTorres-.19;
-  for(const [x,z] of [[-48,20],[-42,20],[-48,27],[-42,27]]){
-    bloque(suelo,{x,y:.71+elevacionMesas,z,ancho:1.5,alto:.1,fondo:1.5,color:'#9b7d63'});
-    bloque(suelo,{x,y:.46+elevacionMesas,z,ancho:.12,alto:.43,fondo:.12,color:'#6e7d85'});
-  }
-
   const extras=new THREE.Group();extras.name='Áreas verdes, escaleras y rampas';escena.add(extras);
-  jardin(extras,-49,-17,12,27,4);
-  jardin(extras,-46,0,9,9,1);
+  crearLateralC(suelo,extras);
+  crearSubterraneoC(suelo,extras);
   // Conserva el relieve de las jardineras sobre los corredores ahora elevados.
   jardin(extras,-13,-30,7,6,0,nivelTorres+.285);
   jardin(extras,13,-30,7,6,0,nivelTorres+.285);
   // Jardín ampliado 18% más hacia la izquierda, conservando el lado este unido a la sala.
   jardinAbierto(extras,{x:18.490074,z:11.81,ancho:4.119852,fondo:19.42,altura:nivelTorres+.285,abierto:'este'});
   crearAccesoLateral(extras);
-  rampa(extras,-49,-8,5.3,17,.055);
-  escalera(extras,-48,-30,4);
+
   // Pasarelas y pórticos que unen las torres entre sí y con el cerco.
   unirTorresEntreSi(extras);
   const perimetro=new THREE.Group();perimetro.name='Muros perimetrales';escena.add(perimetro);
@@ -825,6 +834,7 @@ export function crearExteriores(escena){
   unirTorresAlMuro(perimetro);
   aplicarPiedraPisos([suelo,extras],pavimento);
   aplicarCementoMuros([extras,perimetro]);
+  aplicarAcabadosLateral(extras);
   aplicarCesped(extras);
   aplicarRayasRampas(extras);
   return {suelo,extras,perimetro};
