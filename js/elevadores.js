@@ -7,12 +7,42 @@ export const PISOS_ELEVADOR=11;
 const base=CONFIG.baseY+.085;
 export const cotaPiso=piso=>base+(piso-1)*CONFIG.altoPiso;
 
-function vidrioFijo(grupo,x,z,ancho,alto,rotacion=0){
+function vidrioFijo(grupo,x,z,ancho,alto,rotacion=0,colorMarco='#121820'){
   const marco=new THREE.Group();marco.position.set(x,0,z);marco.rotation.y=rotacion;grupo.add(marco);
   const vidrio=new THREE.MeshStandardMaterial({color:'#80c4df',transparent:true,opacity:.32,roughness:.15,depthWrite:false});
   bloque(marco,{y:alto/2,ancho,alto,fondo:.065,material:vidrio,sombra:false});
-  for(const lado of [-1,1])bloque(marco,{x:lado*ancho/2,y:alto/2,ancho:.085,alto,fondo:.12,color:'#121820'});
-  for(const y of [.04,alto])bloque(marco,{y,ancho,alto:.085,fondo:.12,color:'#121820'});
+  for(const lado of [-1,1])bloque(marco,{x:lado*ancho/2,y:alto/2,ancho:.085,alto,fondo:.12,color:colorMarco});
+  for(const y of [.04,alto])bloque(marco,{y,ancho,alto:.085,fondo:.12,color:colorMarco});
+}
+
+function entradaDoble(grupo,{x,z,largo,alto}){
+  const paredDoble=new THREE.Group();paredDoble.name='Entrada de vidrio con dos hojas hacia dentro';
+  paredDoble.position.set(x,0,z);paredDoble.rotation.y=Math.PI/2;grupo.add(paredDoble);
+  const centro=-.9,anchoVano=2.6,altoPuerta=2.65,hojaAncho=anchoVano/2;
+  const izquierda=centro-anchoVano/2,derecha=centro+anchoVano/2;
+  for(const [inicio,fin] of [[-largo/2,izquierda],[derecha,largo/2]]){
+    vidrioFijo(paredDoble,(inicio+fin)/2,0,fin-inicio,alto,0,'#808c89');
+  }
+  const superior=new THREE.Group();superior.position.y=altoPuerta;paredDoble.add(superior);
+  vidrioFijo(superior,centro,0,anchoVano,alto-altoPuerta,0,'#808c89');
+  const vidrio=new THREE.MeshStandardMaterial({color:'#8acbdf',transparent:true,opacity:.42,
+    roughness:.16,metalness:.08,depthWrite:false});
+  for(const lado of [-1,1]){
+    const hoja=new THREE.Group(),sentido=-lado;
+    hoja.name=`Hoja ${lado<0?'izquierda':'derecha'} de entrada doble`;
+    hoja.position.x=centro+lado*hojaAncho;
+    Object.assign(hoja.userData,{puerta:true,puertaInteractiva:true,abierta:false,
+      anguloAbierto:sentido*Math.PI/2,colisionDinamica:true,grupoPuertas:paredDoble.uuid});
+    paredDoble.add(hoja);
+    bloque(hoja,{x:sentido*hojaAncho/2,y:altoPuerta/2,ancho:hojaAncho-.08,
+      alto:altoPuerta-.08,fondo:.065,material:vidrio});
+    for(const borde of [.035,hojaAncho-.035])bloque(hoja,{x:sentido*borde,y:altoPuerta/2,
+      ancho:.07,alto:altoPuerta,fondo:.12,color:'#808c89'});
+    for(const y of [.035,altoPuerta-.035])bloque(hoja,{x:sentido*hojaAncho/2,y,
+      ancho:hojaAncho,alto:.07,fondo:.12,color:'#808c89'});
+    for(const cara of [-1,1])bloque(hoja,{x:sentido*(hojaAncho-.18),y:1.25,z:cara*.12,
+      ancho:.055,alto:.55,fondo:.065,color:'#808c89'});
+  }
 }
 
 function rotulo(grupo,texto,x,y,z,rotacion=0){
@@ -44,7 +74,9 @@ export function crearZonaElevadores(padre,{x,z,ancho,fondo}){
   const cabinas=[];
   for(const [signo,cantidad] of [[-1,DISTRIBUCION_ELEVADORES.derecha],[1,DISTRIBUCION_ELEVADORES.izquierda]]){
     for(let i=0;i<cantidad;i++){
-      const cx=-a+(i+.5)*ancho/cantidad,cz=signo*(b-1.25),frente=-signo;
+      // Desplaza la primera cabina hacia la segunda, siguiendo la flecha del plano.
+      const desplazamientoX=signo===-1&&i===0?3.25:0;
+      const cx=-a+(i+.5)*ancho/cantidad+desplazamientoX,cz=signo*(b-1.25),frente=-signo;
       const cabina=new THREE.Group();cabina.name=`Cabina elevador ${cabinas.length+1}`;
       cabina.position.set(cx,base,cz);grupo.add(cabina);
       bloque(cabina,{y:-.07,ancho:2.65,alto:.14,fondo:2.2,color:'#b6b3a7'});
@@ -67,17 +99,49 @@ export function crearZonaElevadores(padre,{x,z,ancho,fondo}){
       bloque(g,{z:signo*b,y:alto/2,ancho,alto,fondo:.22,color:pared});
       const fila=cabinas.filter(c=>c.frente===-signo);
       // Paños continuos entre vanos, también en el lado con solo dos ascensores.
-      let inicio=-a;
+      // Abre los extremos marcados del frente en la planta baja.
+      const extremosAbiertos=piso===1&&signo===-1;
+      let inicio=extremosAbiertos?cabinas[0].x-3.3:-a;
       for(const c of fila){
         const fin=c.x-.88;
         if(fin>inicio)bloque(g,{x:(inicio+fin)/2,z:c.z+c.frente*1.12,y:alto/2,ancho:fin-inicio,alto,fondo:.25,color:pared});
         bloque(g,{x:c.x,z:c.z+c.frente*1.12,y:(2.72+alto)/2,ancho:1.76,alto:alto-2.72,fondo:.25,color:pared});
         inicio=c.x+.88;
       }
-      if(inicio<a)bloque(g,{x:(inicio+a)/2,z:signo*(b-2.37),y:alto/2,ancho:a-inicio,alto,fondo:.25,color:pared});
+      const final=extremosAbiertos?cabinas[1].x+2.2:a;
+      if(inicio<final)bloque(g,{x:(inicio+final)/2,z:signo*(b-2.37),y:alto/2,ancho:final-inicio,alto,fondo:.25,color:pared});
     }
     if(piso===1){
-      for(const lado of [-1,1])paredVidrio(g,{x:lado*a,z:0,largo:fondo,baseY:0,alto,rotacion:lado*Math.PI/2,colorMarco:'#808c89'});
+      // Divisiones y retornos señalados a ambos lados de la fila de dos cabinas.
+      const izquierda=cabinas[0].x-2.3,derecha=cabinas[1].x+2.2;
+      const frente=-b+2.37;
+      const tramos=[
+        ['División izquierda',izquierda,-b,izquierda,frente],
+        ['Retorno izquierdo',izquierda-1,frente-.65,izquierda+.9,frente-.65],
+        ['Cierre corto izquierdo',izquierda-1,frente-.65,izquierda-1,frente],
+        ['División derecha',derecha,-b,derecha,frente],
+        ['Unión posterior al vidrio',a,-b,a+1.5,-b],
+        ['Cierre junto al jardín y al vidrio',a,b-2.37,a,b],
+        ['División de cabina junto al jardín',a-ancho/4,b-2.37,a-ancho/4,b]
+      ];
+      for(const [nombre,x1,z1,x2,z2] of tramos){
+        bloque(g,{x:(x1+x2)/2,z:(z1+z2)/2,y:alto/2,
+          ancho:Math.abs(x2-x1)+.22,fondo:Math.abs(z2-z1)+.22,
+          alto,color:pared}).name=`Muro de elevadores · ${nombre}`;
+      }
+      for(const lado of [-1,1]){
+        const desplazamientoExterior=lado===1?1.5:0;
+        // El extremo +Z termina en el nuevo panel transversal.
+        const recorte=lado===1?2.37:0;
+        if(lado===1){
+          entradaDoble(g,{x:a+desplazamientoExterior,z:-recorte/2,largo:fondo-recorte,alto});
+          continue;
+        }
+        paredVidrio(g,{x:lado*a+desplazamientoExterior,z:-recorte/2,largo:fondo-recorte,
+          baseY:0,alto,rotacion:lado*Math.PI/2,colorMarco:'#808c89'});
+      }
+      // Cierra el tramo marcado entre la fachada de cabinas y el vidrio desplazado.
+      vidrioFijo(g,a+.75,b-2.37,1.5,alto,0,'#808c89');
     }else{
       for(const lado of [-1,1])vidrioFijo(g,lado*a,0,fondo,alto,Math.PI/2);
     }
@@ -110,9 +174,10 @@ export function crearZonaElevadores(padre,{x,z,ancho,fondo}){
     const nivel={grupo:g,suelo,puertas,cubierta};niveles.set(piso,nivel);return nivel;
   }
   const plantaBaja=crearNivel(1);
-  const limiteJardin=.16+(3.5-.16)*1.5;
-  jardinContorno(grupo,[[-a,b+.16],[a-1.96,b+.16],[a-1.96,b-1.15],
-    [a-.04,b-1.15],[a-.04,b+limiteJardin],[-a,b+limiteJardin]],base+.18,.65,'#08090b');
+  // Contorno ajustado: franja estrecha y retorno hasta el frente del vidrio.
+  const limiteJardin=2.7;
+  jardinContorno(grupo,[[-a,b+.16],[a,b+.16],[a,b-2.37],
+    [a+1.5,b-2.37],[a+1.5,b+limiteJardin],[-a,b+limiteJardin]],base+.18,.35,'#08090b',[0,1]);
   const datos={grupo,ancho,fondo,cabinas,niveles,crearNivel,plantaBaja};
   grupo.userData.zonaElevadores=datos;
   return datos;

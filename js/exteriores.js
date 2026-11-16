@@ -4,6 +4,8 @@ import { crearIngreso } from './ingreso.js?v=colision-rejas-piso-180';
 import { bloque,placa,columna,etiqueta } from './geometria.js';
 import { aplicarPiedraPisos } from './piedra-piso.js?v=pizarra-pasillo-a-93';
 import { aplicarCesped } from './cesped.js';
+import { cubrirJardinesConTierraYPasto } from './vegetacion.js?v=arbustos-213';
+import { crearDisenosArbustos } from './arbustos-patio.js?v=arbustos-213';
 import { aplicarCementoMuros } from './cemento.js';
 import { crearLateralC } from './lateral-c.js?v=video-1511-vegetacion';
 import { crearSubterraneoC,pisoConHueco,HUECO_C,ACCESO_C } from './subterraneo-c.js?v=video-1511-vegetacion';
@@ -982,6 +984,25 @@ function unirTorresEntreSi(grupo){
   }
 }
 
+function marcarZonasSeguras(grupo){
+  const canvas=document.createElement('canvas');canvas.width=canvas.height=512;
+  const ctx=canvas.getContext('2d');
+  // Pintura amarilla sobre el pavimento: interior transparente, sin disco de fondo.
+  ctx.strokeStyle='#ffdc00';ctx.lineWidth=14;
+  ctx.beginPath();ctx.arc(256,256,239,0,Math.PI*2);ctx.stroke();
+  ctx.fillStyle='#ffdc00';ctx.font='bold 300px Arial';ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText('S',256,273);
+  const mapa=new THREE.CanvasTexture(canvas);mapa.colorSpace=THREE.SRGBColorSpace;
+  const material=new THREE.MeshBasicMaterial({map:mapa,transparent:true,depthWrite:false,
+    polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-1});
+  for(const [x,z,y,diametro,giro] of [[72,30,.16,6.8,Math.PI/2],[54,-17,1.37,4.4,0]]){
+    const marca=new THREE.Mesh(new THREE.PlaneGeometry(diametro,diametro),material);
+    marca.name='Círculo de seguridad · S';marca.rotation.x=-Math.PI/2;
+    marca.rotation.z=giro;
+    marca.position.set(x,y,z);marca.userData.sinColision=true;grupo.add(marca);
+  }
+}
+
 export function crearExteriores(escena){
   const suelo=new THREE.Group();suelo.name='Terreno y plazas';escena.add(suelo);
   const baseTorres=.08,nivelTorres=CONFIG.baseY+.01;
@@ -1037,7 +1058,11 @@ export function crearExteriores(escena){
   aplicarPiedraPisos([suelo,extras],pavimento);
   aplicarCementoMuros([extras,perimetro]);
   aplicarAcabadosLateral(extras);
+  const patio=extras.getObjectByName('Patio de Torre A · croquis 10 noviembre');
+  crearDisenosArbustos(patio);
+  cubrirJardinesConTierraYPasto(patio);
   aplicarCesped(extras);
   aplicarRayasRampas(extras);
+  marcarZonasSeguras(extras);
   return {suelo,extras,perimetro};
 }
