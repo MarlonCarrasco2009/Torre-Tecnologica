@@ -1,10 +1,10 @@
 import * as THREE from 'three';
-import { CONFIG } from './config.js?v=video-1511-vegetacion';
-import { crearIngreso } from './ingreso.js?v=video-1511-vegetacion';
-import { bloque,placa,columna,etiqueta } from './geometria.js?v=video-1511-vegetacion';
-import { aplicarPiedraPisos } from './piedra-piso.js?v=video-1511-vegetacion';
-import { aplicarCesped } from './cesped.js?v=video-1511-vegetacion';
-import { aplicarCementoMuros } from './cemento.js?v=video-1511-vegetacion';
+import { CONFIG,AMBIENTES } from './config.js?v=rampas-concreto-claro-84';
+import { crearIngreso } from './ingreso.js?v=colision-rejas-piso-180';
+import { bloque,placa,columna,etiqueta } from './geometria.js';
+import { aplicarPiedraPisos } from './piedra-piso.js?v=pizarra-pasillo-a-93';
+import { aplicarCesped } from './cesped.js';
+import { aplicarCementoMuros } from './cemento.js';
 import { crearLateralC } from './lateral-c.js?v=video-1511-vegetacion';
 import { crearSubterraneoC,pisoConHueco,HUECO_C,ACCESO_C } from './subterraneo-c.js?v=video-1511-vegetacion';
 import { aplicarAcabadosLateral } from './acabados-lateral.js?v=video-1511-vegetacion';
@@ -339,8 +339,16 @@ function rampaTrapezoidal(grupo,{sur,norte,anchoSur,anchoNorte,barandas=true,col
   const vertices=[...esquinas.flat(),...esquinas.flatMap(([x,,z])=>[x,.12,z])];
   const geometria=new THREE.BufferGeometry();
   geometria.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));
-  geometria.setIndex([0,1,2,0,2,3,4,6,5,4,7,6,
-    0,4,5,0,5,1,1,5,6,1,6,2,2,6,7,2,7,3,3,7,4,3,4,0]);
+  const indices=[0,1,2,0,2,3,4,6,5,4,7,6,
+    0,4,5,0,5,1,1,5,6,1,6,2,2,6,7,2,7,3,3,7,4,3,4,0];
+  // El recorrido puede avanzar en cualquiera de los sentidos del eje local Z.
+  // Mantiene las caras hacia fuera también en la rampa girada junto al jardín.
+  if(norte.z>sur.z){
+    for(let i=0;i<indices.length;i+=3){
+      [indices[i+1],indices[i+2]]=[indices[i+2],indices[i+1]];
+    }
+  }
+  geometria.setIndex(indices);
   geometria.computeVertexNormals();
   const rampa=new THREE.Mesh(geometria,new THREE.MeshStandardMaterial({color,roughness:.84}));
   rampa.name=nombre;
@@ -428,14 +436,102 @@ function crearAccesoLateral(grupo){
   franjaFrontal.userData.contorno=contornoFranja;
   acceso.add(franjaFrontal);
   jardinContorno(franjaFrontal,contornoFranja,alto+.07,.55,'#08090b',[4]);
-  jardinCroquis('Franja verde transversal junto a Administración',[[fachada,-25.7],[finJardinAdministracion,-25.7],
-    [finJardinAdministracion,-22.1],[fachada,-22.1]]);
-  jardinCroquis('Jardín posterior de Torre A',[[28,-38],[42.7,-38],[44,-35],[28,-35]],.86);
+  // El césped llega a la cara del muro, que cierra este lateral del jardín.
+  const zMuroAdministracion=-19.6;
+  const limiteJardinMuro=zMuroAdministracion-.24/2;
+  // Corte diagonal: la franja se ensancha hacia el Ingreso, como en la referencia.
+  // El borde de contención sigue este mismo segmento inclinado.
+  const corteJuntoTorre=-22.5,corteJuntoIngreso=-24.2;
+  jardinCroquis('Franja verde transversal junto a Administración',[[fachada,corteJuntoTorre],[finJardinAdministracion,corteJuntoIngreso],
+    [finJardinAdministracion,limiteJardinMuro],[fachada,limiteJardinMuro]],alto+.07,[2]);
+  // Rampa exterior en el tramo marcado: desde el patio hasta el Ingreso,
+  // pegada al borde diagonal del jardín y con el mismo trazado longitudinal.
+  const inicioRampaJardin=fachada+(finJardinAdministracion-fachada)*.37;
+  const anchoRampaJardin=3.2;
+  const nivelPlataformaExterior=bajo+.64;
+  // Cota local del suelo: al elevar el conjunto coincide con el piso del Ingreso.
+  const nivelBaseExplanada=.1+.06/2;
+  const lateralJardin=x=>THREE.MathUtils.lerp(corteJuntoTorre,corteJuntoIngreso,
+    (x-fachada)/(finJardinAdministracion-fachada));
+  const rampaJardin=new THREE.Group();
+  rampaJardin.name='Rampa junto al corte diagonal del jardín de Administración';
+  rampaJardin.rotation.y=Math.PI/2;
+  acceso.add(rampaJardin);
+  // Desciende hacia el Ingreso (+X) y asciende hacia la plataforma de la torre.
+  rampaTrapezoidal(rampaJardin,{
+    sur:{x:-lateralJardin(inicioRampaJardin)+anchoRampaJardin/2,z:inicioRampaJardin,y:nivelPlataformaExterior},
+    norte:{x:-lateralJardin(finJardinAdministracion)+anchoRampaJardin/2,z:finJardinAdministracion,y:nivelBaseExplanada},
+    anchoSur:anchoRampaJardin,anchoNorte:anchoRampaJardin,barandas:false,
+    nombre:'Rampa de acceso junto al jardín inclinado'});
+  // Muro negro continuo sobre el lateral exterior señalado de la rampa.
+  // Reduce solo este muro en 1.25 unidades, conservando la base y el espesor.
+  const muroRampa=new THREE.Group();
+  muroRampa.name='Muro negro exterior de la rampa junto al jardín';
+  acceso.add(muroRampa);
+  const exteriorRampa=x=>lateralJardin(x)-anchoRampaJardin;
+  bordeJardin(muroRampa,[
+    [inicioRampaJardin,exteriorRampa(inicioRampaJardin)-.6],
+    [finJardinAdministracion,exteriorRampa(finJardinAdministracion)-.6],
+    [finJardinAdministracion,exteriorRampa(finJardinAdministracion)+anchoRampaJardin],
+    [inicioRampaJardin,exteriorRampa(inicioRampaJardin)+anchoRampaJardin]
+  ],alto+.07-1.25,.6,'#33363b',[1,2,3]);
+  // Escalera en el rectángulo exterior junto al arranque del muro negro.
+  // Cuatro peldaños que ascienden hacia la torre (-X).
+  const topico=AMBIENTES.A.find(ambiente=>ambiente.id==='a-topico');
+  const zJambaTopico=CONFIG.torres.A.z+topico.z-(-topico.fondo/2+.8+1.35/2);
+  // Acorta la huella de cada peldaño de .8 a .45, conservando la llegada.
+  const inicioEscaleraMuro=inicioRampaJardin+2.6;
+  const finEscaleraMuro=inicioRampaJardin+.8;
+  // Los peldaños ocupan todo el espacio hasta la cara del muro recto.
+  const anchoEscaleraMuro=exteriorRampa(inicioEscaleraMuro)-.6-zJambaTopico;
+  const zEscaleraMuro=exteriorRampa(inicioEscaleraMuro)-.6-anchoEscaleraMuro/2;
+  recorrido(acceso,
+    {x:inicioEscaleraMuro,z:zEscaleraMuro,y:bajo},
+    {x:finEscaleraMuro,z:zEscaleraMuro,y:nivelPlataformaExterior},
+    anchoEscaleraMuro,'escalera',
+    {peldaños:4,barandas:0,nombre:'Escalera de cuatro peldaños hacia Torre A junto al muro negro'});
+  // Plataforma maciza en la zona marcada, con llegadas a ras de ambos accesos.
+  const plataformaExterior=new THREE.Group();
+  plataformaExterior.name='Plataforma exterior que conecta rampa y escalera';
+  acceso.add(plataformaExterior);
+  // La plataforma alta termina bajo el muro; al otro lado queda la explanada a ras.
+  // Retrae la cara del piso dentro del muro para evitar superficies coplanares.
+  const limiteExteriorPlataforma=zJambaTopico-.45;
+  pisoLateralElevado(plataformaExterior,[
+    [fachada,corteJuntoTorre],
+    [inicioRampaJardin,lateralJardin(inicioRampaJardin)],
+    [inicioRampaJardin,exteriorRampa(inicioRampaJardin)-.6],
+    [finEscaleraMuro,exteriorRampa(inicioRampaJardin)-.6],
+    [finEscaleraMuro,limiteExteriorPlataforma],
+    [fachada,limiteExteriorPlataforma]
+  ],()=>nivelPlataformaExterior);
+  // Muro bajo desde la jamba derecha del Tópico hasta el borde junto a la escalera.
+  const zFinMuro=zJambaTopico;
+  const muroPatioTopico=new THREE.Group();
+  muroPatioTopico.name='Muro negro de jardín entre Tópico y escalera';
+  acceso.add(muroPatioTopico);
+  bordeJardin(muroPatioTopico,[
+    [fachada,zJambaTopico],[finEscaleraMuro,zFinMuro],
+    [finEscaleraMuro,zFinMuro-.6],[fachada,zJambaTopico-.6]
+  ],nivelPlataformaExterior+.07,.5,'#33363b',[1,2,3]);
+  // Solo la cara que mira al césped (-Z) es blanca; la tapa conserva su acabado.
+  const blancoLateral=new THREE.MeshStandardMaterial({color:'#f4f4ef',roughness:.92});
+  muroPatioTopico.traverse(obj=>{
+    if(!obj.isMesh)return;
+    const geometria=obj.geometry,normales=geometria.attributes.normal;
+    const indices=geometria.index,total=indices?indices.count:normales.count;
+    obj.material=[obj.material,blancoLateral];
+    geometria.clearGroups();
+    for(let i=0;i<total;i+=3){
+      const vertice=indices?indices.getX(i):i;
+      geometria.addGroup(i,3,normales.getZ(vertice)<-.99?1:0);
+    }
+  });
   // Se retira el tramo frente al ingreso; quedan dos conexiones y el acceso libre.
   // El extremo encaja con la cara exterior del cerramiento lateral izquierdo del Ingreso.
   const limiteMuroLateralIngreso=ingresoX-5.5;
-  const muroAntesIngreso=trazarMuro(acceso,fachada,-19.6,
-    limiteMuroLateralIngreso,-19.6);
+  const muroAntesIngreso=trazarMuro(acceso,fachada,zMuroAdministracion,
+    limiteMuroLateralIngreso,zMuroAdministracion);
   // Se conserva solo el tramo anterior; el muro paralelo posterior se retira.
   for(const muro of [muroAntesIngreso]){
     muro.userData.sinColision=true;
@@ -446,7 +542,14 @@ function crearAccesoLateral(grupo){
     .name='Paseo continuo de las fachadas de Torre A';
   descansoMacizo(acceso,{x:(fachada+55.3)/2,z:28.9,ancho:55.3-fachada,fondo:7.8,altura:alto})
     .name='Descanso frontal unido a Torre A';
-  descansoMacizo(acceso,{x:(fachada+74.5)/2,z:-21.35,ancho:74.5-fachada,fondo:1.5,altura:alto});
+  // El paseo alto termina antes del ingreso. La franja que cruza las rejas
+  // queda enrasada con su pavimento, sin un resalto que atraviese los vanos.
+  const inicioPisoIngreso=ingresoX-5.9;
+  descansoMacizo(acceso,{x:(fachada+inicioPisoIngreso)/2,z:-21.35,
+    ancho:inicioPisoIngreso-fachada,fondo:1.5,altura:alto});
+  descansoMacizo(acceso,{x:(inicioPisoIngreso+74.5)/2,z:-21.35,
+    ancho:74.5-inicioPisoIngreso,fondo:1.5,altura:1.34})
+    .name='Franja enrasada bajo las rejas del ingreso';
   descansoMacizo(acceso,{x:67.525,z:-17.3,ancho:7.25,fondo:6.6,altura:1.35});
   // Dos escaleras contiguas orientadas hacia la fachada de las torres (-X).
   // Relleno macizo hasta el ingreso, unido al pasillo entre los jardines.
@@ -500,12 +603,91 @@ function crearAccesoLateral(grupo){
   // La pareja frontal sigue subiendo hacia las torres (-X).
   recorrido(acceso,{x:57.7,z:28.9,y:bajo},{x:55.3,z:28.9,y:alto},7.8,'escalera',
     {peldaños:6,tramos:2,barandas:3,nombre:'Escalera frontal de la isla trapezoidal'});
-  descansoMacizo(acceso,{x:(35.5+44)/2,z:-34.25,ancho:44-35.5,fondo:1.5,altura:alto});
-  recorrido(acceso,{x:42.6,z:-29.5,y:bajo},{x:42.6,z:-33.5,y:alto},2.8,'escalera',
-    {barandas:3,nombre:'Escalera posterior junto a Torre A'});
-  descansoMacizo(acceso,{x:52.9,z:-29.5,ancho:23.4,fondo:1.4,altura:bajo});
+  const descansoExterior=descansoMacizo(acceso,{x:52.9,z:-29.5,ancho:23.4,fondo:1.4,altura:bajo});
+  // Explanada exterior: misma superficie que la base del edificio de Ingreso.
+  const nivelExplanada=nivelLlegadaEscaleras-.01;
+  const elevacionExplanada=nivelExplanada-nivelBaseExplanada;
+  const explanada=new THREE.Group();
+  explanada.name='Explanada exterior maciza nivelada con el Ingreso';
+  acceso.add(explanada);
+  pisoLateralElevado(explanada,[
+    [fachada,-CONFIG.fondoCampus/2],
+    [CONFIG.anchoCampus/2+CONFIG.extensionDerecha,-CONFIG.fondoCampus/2],
+    [CONFIG.anchoCampus/2+CONFIG.extensionDerecha,-25.32],
+    [ingresoX-5.9,-25.32],
+    [ingresoX-5.9,corteJuntoIngreso],
+    [finJardinAdministracion,corteJuntoIngreso],
+    [fachada,corteJuntoTorre]
+  ],()=>nivelExplanada);
+  // Completa el hueco posterior que dejó el bloque retirado junto al Tópico.
+  const bordePosteriorA=CONFIG.torres.A.z-CONFIG.torres.A.fondo/2;
+  const bordeIzquierdoA=CONFIG.torres.A.x-CONFIG.torres.A.ancho/2;
+  const rellenoPosteriorTopico=new THREE.Group();
+  rellenoPosteriorTopico.name='Relleno de piso posterior al Tópico';
+  acceso.add(rellenoPosteriorTopico);
+  pisoLateralElevado(rellenoPosteriorTopico,[
+    [bordeIzquierdoA,-CONFIG.fondoCampus/2],
+    [fachada,-CONFIG.fondoCampus/2],
+    [fachada,bordePosteriorA],
+    [bordeIzquierdoA,bordePosteriorA]
+  ],()=>nivelExplanada);
+  // Jardinera blanca en el contorno marcado, entre Tópico y la escalera.
+  const jardinBlancoTopico=new THREE.Group();
+  jardinBlancoTopico.name='Jardinera blanca con césped junto al Tópico';
+  acceso.add(jardinBlancoTopico);
+  const lateralExteriorTopico=CONFIG.torres.A.z+topico.z-topico.fondo/2-.65;
+  const finJardinExtendido=CONFIG.torres.B.x+CONFIG.torres.B.ancho/2;
+  const esquinaTopico=CONFIG.torres.A.x+(topico.x-topico.ancho/2)*CONFIG.torres.A.ancho/16;
+  const frenteCercoTopico=CONFIG.torres.A.z+topico.z-topico.fondo/2-.12;
+  jardinContorno(jardinBlancoTopico,[
+    [finJardinExtendido,frenteCercoTopico],
+    [esquinaTopico,frenteCercoTopico],
+    [esquinaTopico,lateralExteriorTopico],
+    [fachada,lateralExteriorTopico],
+    [fachada,zJambaTopico-.5],
+    [finEscaleraMuro,zJambaTopico-.5],
+    [finEscaleraMuro-.8,-35.8],
+    [finJardinExtendido,-35.8]
+  ],nivelExplanada+.15,.35,'#f4f4ef',[0,1,2,3,4]);
+  const coronacionJardinExtendido=3.03;
+  // Relleno elevado dentro de la sección cerrada por los tres muros altos.
+  const nivelCespedElevado=coronacionJardinExtendido-.15;
+  const inicioCesped=finJardinExtendido+.35,finCesped=esquinaTopico-.175;
+  const baseRellenoCesped=nivelExplanada+.15;
+  bloque(jardinBlancoTopico,{x:(inicioCesped+finCesped)/2,
+    z:(frenteCercoTopico-35.45)/2,y:(baseRellenoCesped+nivelCespedElevado)/2,
+    ancho:finCesped-inicioCesped,alto:nivelCespedElevado-baseRellenoCesped,
+    fondo:frenteCercoTopico+35.45,color:'#3a9676'})
+    .name='Césped elevado dentro de los muros blancos altos';
+  const coronacionBordeAnterior=nivelExplanada+.8;
+  const alturaAdicional=coronacionJardinExtendido-coronacionBordeAnterior;
+  const yAmpliacion=(coronacionBordeAnterior+coronacionJardinExtendido)/2;
+  bloque(jardinBlancoTopico,{x:(finJardinExtendido+esquinaTopico)/2,z:-35.8+.175,
+    y:yAmpliacion,ancho:esquinaTopico-finJardinExtendido,alto:alturaAdicional,
+    fondo:.35,color:'#f4f4ef'}).name='Elevación del muro exterior del jardín ampliado';
+  bloque(jardinBlancoTopico,{x:finJardinExtendido+.175,z:(frenteCercoTopico-35.45)/2,
+    y:yAmpliacion,ancho:.35,alto:alturaAdicional,fondo:frenteCercoTopico+35.45,
+    color:'#f4f4ef'}).name='Elevación del extremo del jardín ampliado';
+  // Borde transversal señalado, unido al cerco y al borde exterior blanco.
+  bloque(jardinBlancoTopico,{x:esquinaTopico,z:(frenteCercoTopico-35.8)/2,
+    y:(nivelExplanada+coronacionJardinExtendido)/2,ancho:.35,
+    alto:coronacionJardinExtendido-nivelExplanada,fondo:frenteCercoTopico+35.8,
+    color:'#f4f4ef'}).name='Borde blanco transversal del jardín junto al Tópico';
+  // Los conjuntos se desplazan completos para conservar peldaños, bordes
+  // y las uniones de la rampa con su plataforma elevada.
+  const elementosExplanada=[rampaJardin,muroRampa,plataformaExterior,muroPatioTopico,
+    acceso.getObjectByName('Escalera de cuatro peldaños hacia Torre A junto al muro negro')];
+  for(const elemento of elementosExplanada)elemento.position.y+=elevacionExplanada;
+  // El descanso bajo queda integrado en el nuevo relleno, a la misma cota.
+  if(descansoExterior)descansoExterior.visible=false;
   // Rellena el rincón interior del muro en L sin reponer la franja exterior retirada.
   const frentePlataformaIngreso=CONFIG.ingreso.z-3.99;
+  // Une la explanada posterior con el borde frontal de la plataforma.
+  // El rectángulo faltante dejaba una zanja donde no había suelo navegable.
+  descansoMacizo(acceso,{x:(ingresoX-5.9+74.5)/2,
+    z:(-25.32+frentePlataformaIngreso+.1)/2,
+    ancho:74.5-(ingresoX-5.9),fondo:frentePlataformaIngreso+.1+25.32,
+    altura:nivelExplanada}).name='Relleno continuo de la unión exterior del ingreso';
   const limitePosteriorGrava=-25.2+.12;
   const interiorMuroL=74.2+(CONFIG.ingreso.desplazamientoMurosX??0)+2.4+.12;
   const piedra=[[74.5,frentePlataformaIngreso],[interiorMuroL,frentePlataformaIngreso],
@@ -661,6 +843,14 @@ function crearPerimetro(grupo){
     if(muro)muro.scale.y=escalaAlturaCerco;
     return muro;
   };
+  // Cierra el paso señalado junto al jardín, desde Tópico hasta Torre B.
+  const torreA=CONFIG.torres.A,torreB=CONFIG.torres.B;
+  const topico=AMBIENTES.A.find(ambiente=>ambiente.id==='a-topico');
+  const bordeTopicoX=torreA.x+(topico.x-topico.ancho/2)*torreA.ancho/16;
+  const bordeTopicoZ=torreA.z+topico.z-topico.fondo/2;
+  const cierreTopico=trazarMuroPerimetral(bordeTopicoX,bordeTopicoZ,
+    torreB.x+torreB.ancho/2,bordeTopicoZ);
+  if(cierreTopico)cierreTopico.name='Cerco entre Tópico y Torre B junto al jardín';
   // Frente alternado: cada pared de torre sustituye al cerco en su huella.
   let inicio=-x;
   for(const torre of Object.values(CONFIG.torres).sort((a,b)=>a.x-b.x)){
@@ -676,13 +866,14 @@ function crearPerimetro(grupo){
   if(tramoFrontalIngreso)tramoFrontalIngreso.name='Tramo separado frente al Ingreso';
   // Muro frontal del Ingreso separado físicamente de las esquinas laterales.
   const separacionMuroIngreso=.8;
-  const limiteTopico=CONFIG.torres.A.x+CONFIG.torres.A.ancho/2;
+  // El bloque posterior de A se elimina también en su cierre perimetral.
+  const limiteTopico=CONFIG.torres.A.x-CONFIG.torres.A.ancho/2;
   const muroFrontalIngreso=trazarMuroPerimetral(
     -38,-z,
     limiteTopico,-z);
-  // Cerco continuo alrededor de los tres elementos del acceso C: vano
-  // vehicular, ventanilla de control y paso peatonal. Misma base blanca
-  // y panel gris ranurado que los costados; los vanos quedan despejados.
+  // Cerco integrado del acceso vehicular y peatonal de Torre C.
+  // Se dejan libres los vanos y la caseta se remata con el mismo lenguaje
+  // del cerramiento existente.
   const {x:rampaX,ancho:anchoRampa,xCaseta,xPeaton}=ACCESO_C;
   const cercoC=new THREE.Group();cercoC.name='Cerco integrado del acceso de Torre C';grupo.add(cercoC);
   const tramosC=[[-x+separacionMuroIngreso,rampaX-anchoRampa/2],
@@ -690,9 +881,8 @@ function crearPerimetro(grupo){
     [xCaseta+1.25,xPeaton-1],[xPeaton+1,-38]];
   for(const [desde,hasta] of tramosC){
     const tramo=trazarMuro(cercoC,desde,-z,hasta,-z);
-    tramo.scale.y=escalaAlturaCerco;
+    if(tramo)tramo.scale.y=escalaAlturaCerco;
   }
-  // Remates superiores unen el cerramiento sin ocultar la caseta ni los rótulos.
   const coronacion=(.08+1.7+1.5)*escalaAlturaCerco;
   for(const [centro,ancho,base] of [[rampaX,anchoRampa,coronacion-.28],
     [xCaseta,2.5,ACCESO_C.nivel+2.47],[xPeaton,2,ACCESO_C.nivel+2.89]]){
@@ -721,6 +911,8 @@ function unirTorresAlMuro(grupo){
   const materialFrontal=new THREE.MeshStandardMaterial({color:'#343a40',roughness:.9});
   for(const torre of Object.values(CONFIG.torres)){
     for(const lado of [-1,1]){
+      // Retira la cubierta y ambos soportes del bloque marcado detrás del Tópico.
+      if(torre.id==='A'&&lado===-1)continue;
       const extremo=torre.z+lado*torre.fondo/2;
       const muro=lado*borde;
       const profundidad=Math.abs(muro-extremo);
@@ -799,9 +991,8 @@ export function crearExteriores(escena){
     piso.name=nombre;
     return piso;
   };
-  const huecoSubterraneo=HUECO_C;
-  pisoConHueco(suelo,{x:0,y:-.22,z:0,ancho:CONFIG.anchoCampus+90,fondo:CONFIG.fondoCampus+85,alto:.06,color:'#8a9390'},huecoSubterraneo);
-  pisoConHueco(suelo,{x:CONFIG.extensionDerecha/2,y:-.13,z:0,ancho:CONFIG.anchoCampus+CONFIG.extensionDerecha,alto:.23,fondo:CONFIG.fondoCampus,color:pavimento},huecoSubterraneo);
+  pisoConHueco(suelo,{x:0,y:-.22,z:0,ancho:CONFIG.anchoCampus+90,fondo:CONFIG.fondoCampus+85,alto:.06,color:'#8a9390'},HUECO_C);
+  pisoConHueco(suelo,{x:CONFIG.extensionDerecha/2,y:-.13,z:0,ancho:CONFIG.anchoCampus+CONFIG.extensionDerecha,alto:.23,fondo:CONFIG.fondoCampus,color:pavimento},HUECO_C);
   // Amplia plaza peatonal que conecta las tres torres.
   placa(suelo,{x:0,y:.08,z:15,ancho:90,fondo:42,color:pavimento});
   pisoConHueco(suelo,{x:0,y:.08,z:-24,ancho:96,fondo:17,alto:.06,color:pavimento},HUECO_C);
@@ -813,6 +1004,14 @@ export function crearExteriores(escena){
   for(const [izquierda,derecha] of [['C','B'],['B','A']]){
     const a=CONFIG.torres[izquierda],b=CONFIG.torres[derecha];
     const inicio=a.x+a.ancho/2,fin=b.x-b.ancho/2;
+    if(izquierda==='B'&&derecha==='A'){
+      // Deja libre el volumen ocupado por la ampliación del jardín.
+      for(const [desde,hasta] of [[-CONFIG.fondoCampus/2,-35.8],[-33.22,CONFIG.fondoCampus/2]]){
+        pisoMacizo('Corredor elevado entre torres B y A',
+          {x:(inicio+fin)/2,z:(desde+hasta)/2,ancho:fin-inicio,fondo:hasta-desde,color:pavimento});
+      }
+      continue;
+    }
     pisoMacizo(`Corredor elevado entre torres ${izquierda} y ${derecha}`,
       {x:(inicio+fin)/2,z:0,ancho:fin-inicio,fondo:CONFIG.fondoCampus,color:pavimento});
   }
@@ -823,10 +1022,13 @@ export function crearExteriores(escena){
   // Conserva el relieve de las jardineras sobre los corredores ahora elevados.
   jardin(extras,-13,-30,7,6,0,nivelTorres+.285);
   jardin(extras,13,-30,7,6,0,nivelTorres+.285);
-  // Jardín ampliado 18% más hacia la izquierda, conservando el lado este unido a la sala.
-  jardinAbierto(extras,{x:18.490074,z:11.81,ancho:4.119852,fondo:19.42,altura:nivelTorres+.285,abierto:'este'});
+  // Extremos señalados en rojo: desde -8.9 hasta la esquina frontal de la sala.
+  const salaConferencias=AMBIENTES.A.find(a=>a.id==='a-conferencias');
+  const inicioJardinSala=-8.9;
+  const finJardinSala=CONFIG.torres.A.z+salaConferencias.z+salaConferencias.fondo/2;
+  jardinAbierto(extras,{x:18.490074,z:(inicioJardinSala+finJardinSala)/2,
+    ancho:4.119852,fondo:finJardinSala-inicioJardinSala,altura:nivelTorres+.285,abierto:'este'});
   crearAccesoLateral(extras);
-
   // Pasarelas y pórticos que unen las torres entre sí y con el cerco.
   unirTorresEntreSi(extras);
   const perimetro=new THREE.Group();perimetro.name='Muros perimetrales';escena.add(perimetro);

@@ -52,7 +52,7 @@ export function paredVidrio(padre,{x,z,largo,baseY,alto=3.2,rotacion=0,colorMarc
   const puerta=new THREE.Group();
   puerta.name='Puerta de vidrio abierta 70 grados';
   puerta.position.x=-anchoPuerta/2;
-  puerta.rotation.y=-70*Math.PI/180;
+  puerta.rotation.y=70*Math.PI/180;
   pared.add(puerta);
   bloque(puerta,{x:anchoPuerta/2,y:altoPuerta/2,
     ancho:anchoPuerta-.08,alto:altoPuerta-.08,fondo:.08,
@@ -100,7 +100,7 @@ export function paredConPuertas(padre,{x,z,largo,baseY,alto=3.2,rotacion=0}){
     const puerta=new THREE.Group();
     puerta.name='Puerta del auditorio abierta';
     puerta.position.x=izquierda;
-    puerta.rotation.y=-70*Math.PI/180;
+    puerta.rotation.y=70*Math.PI/180;
     pared.add(puerta);
     bloque(puerta,{x:anchoPuerta/2,y:altoPuerta/2,ancho:anchoPuerta-.1,
       alto:altoPuerta-.08,fondo:.1,material:hojaMat});
@@ -116,16 +116,19 @@ export function paredConPuertas(padre,{x,z,largo,baseY,alto=3.2,rotacion=0}){
 }
 
 // Muro con un único vano y hoja abierta, usado para conectar el jardín con la sala.
-export function paredConPuerta(padre,{x,z,largo,baseY,alto=3.2,rotacion=0,puertaCentro=0}){
+export function paredConPuerta(padre,{x,z,largo,baseY,alto=3.2,rotacion=0,puertaCentro=0,
+  colorMuro=paredNormal,colorPuerta='#af9276',colorMarco='#657582',interactiva=false,
+  anchoPuerta=1.35,altoPuerta=2.65}){
   const pared=new THREE.Group();
   pared.name='Muro con puerta abierta hacia el jardín';
   pared.position.set(x,baseY,z);
   pared.rotation.y=rotacion;
   padre.add(pared);
-  const muro=new THREE.MeshStandardMaterial({color:paredNormal,roughness:.83});
-  const marco=new THREE.MeshStandardMaterial({color:'#657582',roughness:.5});
-  const hojaMat=new THREE.MeshStandardMaterial({color:'#af9276',roughness:.65});
-  const anchoPuerta=1.35,altoPuerta=2.65,espesor=.3;
+  const muro=new THREE.MeshStandardMaterial({color:colorMuro,roughness:.83});
+  const marco=new THREE.MeshStandardMaterial({color:colorMarco,roughness:.5});
+  const tirador=new THREE.MeshStandardMaterial({color:'#657582',roughness:.5});
+  const hojaMat=new THREE.MeshStandardMaterial({color:colorPuerta,roughness:.65});
+  const espesor=.3;
   const izquierda=-largo/2,derecha=largo/2;
   const vanoIzq=puertaCentro-anchoPuerta/2,vanoDer=puertaCentro+anchoPuerta/2;
   if(vanoIzq-izquierda>0) bloque(pared,{x:(izquierda+vanoIzq)/2,y:alto/2,ancho:vanoIzq-izquierda,alto,fondo:espesor,material:muro});
@@ -136,10 +139,12 @@ export function paredConPuerta(padre,{x,z,largo,baseY,alto=3.2,rotacion=0,puerta
   const puerta=new THREE.Group();
   puerta.name='Puerta abierta de conexión al jardín';
   puerta.position.x=vanoIzq;
-  puerta.rotation.y=-70*Math.PI/180;
+  puerta.rotation.y=interactiva?0:70*Math.PI/180;
+  if(interactiva)Object.assign(puerta.userData,{puerta:true,puertaInteractiva:true,
+    abierta:false,anguloAbierto:Math.PI/2,colisionDinamica:true});
   pared.add(puerta);
   bloque(puerta,{x:anchoPuerta/2,y:altoPuerta/2,ancho:anchoPuerta-.1,alto:altoPuerta-.08,fondo:.1,material:hojaMat});
-  for(const cara of [-1,1]) bloque(puerta,{x:anchoPuerta-.22,y:1.2,z:cara*.12,ancho:.055,alto:.4,fondo:.065,material:marco});
+  for(const cara of [-1,1]) bloque(puerta,{x:anchoPuerta-.22,y:1.2,z:cara*.12,ancho:.055,alto:.4,fondo:.065,material:tirador});
   return pared;
 }
 export function etiqueta(padre,texto,x,y,z,tipo='zone',extra=''){
@@ -161,12 +166,16 @@ export function lineaSuelo(padre,puntos,color='#9baabd',ancho=.18,y=.36){
 }
 
 // Rótulo adherido a la fachada, visible también durante el recorrido.
-function rotuloFachada(padre,texto,{x=0,y,z=.205,ancho,alto=.48,color='#f4f3ef'}){
+function rotuloFachada(padre,texto,{x=0,y,z=.205,ancho,alto=.48,color='#f4f3ef',ajustarAncho=false}){
   const canvas=document.createElement('canvas');canvas.width=2048;canvas.height=160;
   const ctx=canvas.getContext('2d');
+  if(ajustarAncho){
+    ctx.font='600 112px Arial';
+    canvas.width=Math.ceil(ctx.measureText(texto).width)+24;
+  }
   ctx.font='600 112px Arial';ctx.textAlign='center';ctx.textBaseline='middle';
   ctx.shadowColor='rgba(0,0,0,.75)';ctx.shadowBlur=5;ctx.shadowOffsetY=5;
-  ctx.fillStyle=color;ctx.fillText(texto,1024,80,2010);
+  ctx.fillStyle=color;ctx.fillText(texto,canvas.width/2,80,canvas.width-24);
   const textura=new THREE.CanvasTexture(canvas);textura.colorSpace=THREE.SRGBColorSpace;
   const letrero=new THREE.Mesh(new THREE.PlaneGeometry(ancho,alto),
     new THREE.MeshStandardMaterial({map:textura,transparent:true,roughness:.6,depthWrite:false}));
@@ -177,35 +186,48 @@ function rotuloFachada(padre,texto,{x=0,y,z=.205,ancho,alto=.48,color='#f4f3ef'}
 // Dos fachadas del patio de A: huecos reales y hojas que abren hacia el interior.
 export function fachadaTorreA(padre,{x,z,largo,baseY,tipo,alto=4.4}){
   const fachada=new THREE.Group();fachada.position.set(x,baseY,z);fachada.rotation.y=Math.PI/2;
-  fachada.name=tipo==='estudiantes'?'Fachada de Experiencia Estudiantil':'Fachada de Sala de Conferencias';
+  fachada.name=tipo==='admision'?'Fachada de Informes / Admisión':tipo==='estudiantes'?'Fachada de Experiencia Estudiantil':'Fachada de Sala de Conferencias';
   padre.add(fachada);
-  const estudiantes=tipo==='estudiantes',altoPuerta=2.7;
-  const vanos=estudiantes?[{centro:0,ancho:4.6}]:[
+  const estudiantes=tipo==='estudiantes',admision=tipo==='admision',altoPuerta=2.7;
+  // La esquina marcada está en el paño contiguo de Atención al Estudiante.
+  // Traslada esa división 1.6 unidades sin desplazar las puertas existentes.
+  const extensionVidrio=1.6;
+  const limiteIzquierdo=-largo/2-(admision?extensionVidrio:0);
+  const limiteDerecho=largo/2-(estudiantes?extensionVidrio:0);
+  const inicioVidrioAdmision=limiteIzquierdo;
+  const desplazamientoPuertasAdmision=-1.5;
+  const inicioPuertasAdmision=-.8+desplazamientoPuertasAdmision;
+  const finPuertasAdmision=2.4+desplazamientoPuertasAdmision;
+  const vanos=admision?[{centro:(inicioVidrioAdmision+finPuertasAdmision)/2,ancho:finPuertasAdmision-inicioVidrioAdmision}]:estudiantes?[{centro:0,ancho:4.6}]:[
     {centro:-largo*.38-.65,ancho:1.2},{centro:-largo*.38+.65,ancho:1.2},
     {centro:-largo*.14,ancho:1.2},
     {centro:largo*.38-.65,ancho:1.2},{centro:largo*.38+.65,ancho:1.2}
   ];
-  const segmentos=[];let inicio=-largo/2;
+  const segmentos=[];let inicio=limiteIzquierdo;
   for(const v of vanos){
     const izq=v.centro-v.ancho/2,der=v.centro+v.ancho/2;
     if(izq>inicio)segmentos.push({izq:inicio,der:izq,abajo:0,arriba:alto});
     segmentos.push({izq,der,abajo:altoPuerta,arriba:alto});inicio=der;
   }
-  segmentos.push({izq:inicio,der:largo/2,abajo:0,arriba:alto});
+  const elevacionMuroAdmision=.8;
+  segmentos.push({izq:inicio,der:limiteDerecho,abajo:0,
+    arriba:alto+(admision?elevacionMuroAdmision:0),negro:admision});
   const fondo=new THREE.MeshStandardMaterial({color:'#45474e',roughness:.86});
+  const negro=new THREE.MeshStandardMaterial({color:'#08090b',roughness:.86});
   const tonos=['#73747a','#55565e','#d7d6d0','#86868b','#65666d','#e2e0d8'];
   const anchos=[.82,.55,1.05,.68,.92,.48];
   // Juntas y módulos verticales alternados, recortados alrededor de cada puerta.
   for(const s of segmentos){
     bloque(fachada,{x:(s.izq+s.der)/2,y:(s.abajo+s.arriba)/2,
-      ancho:s.der-s.izq,alto:s.arriba-s.abajo,fondo:.3,material:fondo});
+      ancho:s.der-s.izq,alto:s.arriba-s.abajo,fondo:.3,material:s.negro?negro:fondo});
   }
-  let borde=-largo/2,indice=0;
-  while(borde<largo/2-.001){
-    const fin=Math.min(largo/2,borde+anchos[indice%anchos.length]);
+  let borde=limiteIzquierdo,indice=0;
+  while(borde<limiteDerecho-.001){
+    const fin=Math.min(limiteDerecho,borde+anchos[indice%anchos.length]);
     const corte=[1.3,2.1,3.2,1.85][indice%4];
     for(const [fila,[abajo,arriba]] of [[0,corte],[corte,alto]].entries()){
       for(const s of segmentos){
+        if(s.negro)continue;
         const a=Math.max(borde,s.izq),b=Math.min(fin,s.der);
         const c=Math.max(abajo,s.abajo),d=Math.min(arriba,s.arriba);
         if(b-a>.025&&d-c>.025)bloque(fachada,{x:(a+b)/2,y:(c+d)/2,z:.166,
@@ -214,7 +236,7 @@ export function fachadaTorreA(padre,{x,z,largo,baseY,tipo,alto=4.4}){
     }
     borde=fin;indice++;
   }
-  const metal=new THREE.MeshStandardMaterial({color:estudiantes?'#bec4c7':'#505964',metalness:.7,roughness:.3});
+  const metal=new THREE.MeshStandardMaterial({color:estudiantes||admision?'#bec4c7':'#505964',metalness:.7,roughness:.3});
   const vidrio=new THREE.MeshStandardMaterial({color:'#8bbfc7',transparent:true,opacity:.3,
     metalness:.15,roughness:.16,depthWrite:false});
   const esmerilado=new THREE.MeshStandardMaterial({color:'#bdd2d2',transparent:true,opacity:.78,roughness:.6});
@@ -228,7 +250,7 @@ export function fachadaTorreA(padre,{x,z,largo,baseY,tipo,alto=4.4}){
     g.rotation.y=0;
     g.userData={puerta:true,tipo:cristal?'vidrio':'opaca',centroVano:centro,ancho,espesor:cristal?.035:.065};fachada.add(g);
     Object.assign(g.userData,{puertaAuditorio:!cristal,puertaInteractiva:true,abierta:false,
-      anguloAbierto:bisagra*Math.PI/2,colisionDinamica:true});
+      anguloAbierto:-bisagra*Math.PI/2,colisionDinamica:true});
     const centroHoja=-bisagra*ancho/2;
     bloque(g,{x:centroHoja,y:altoPuerta/2,ancho:ancho-.045,alto:altoPuerta-.06,
       fondo:cristal?.035:.065,material:cristal?vidrio:hojaGris,sombra:!cristal});
@@ -248,7 +270,21 @@ export function fachadaTorreA(padre,{x,z,largo,baseY,tipo,alto=4.4}){
       ancho:.065,alto:altoPuerta,fondo:.36,material:metal});
     bloque(fachada,{x:v.centro,y:altoPuerta,ancho:v.ancho+.065,alto:.075,fondo:.36,material:metal});
   }
-  if(estudiantes){
+  if(admision){
+    // Corrección de fachada: desplaza el conjunto de dos puertas hacia la
+    // izquierda para alinearlo con el acceso marcado en la referencia.
+    // Recorta el vidrio fijo hasta la nueva jamba, sin superponerlo a las hojas.
+    const anchoFijo=inicioPuertasAdmision-inicioVidrioAdmision,centroFijo=(inicioVidrioAdmision+inicioPuertasAdmision)/2;
+    bloque(fachada,{x:centroFijo,y:altoPuerta/2,ancho:anchoFijo,alto:altoPuerta,
+      fondo:.035,material:vidrio,sombra:false});
+    bloque(fachada,{x:centroFijo,y:1.15,ancho:anchoFijo,alto:2.15,
+      fondo:.04,material:esmerilado,sombra:false});
+    bloque(fachada,{x:inicioPuertasAdmision,y:altoPuerta/2,ancho:.065,alto:altoPuerta,fondo:.13,material:metal});
+    bloque(fachada,{x:centroFijo,y:.04,ancho:anchoFijo,alto:.075,fondo:.13,material:metal});
+    hoja(desplazamientoPuertasAdmision,1.6,true,1);
+    hoja(desplazamientoPuertasAdmision+1.6,1.6,true,2);
+    rotuloFachada(fachada,'SENATI',{x:(inicioPuertasAdmision+finPuertasAdmision)/2,y:3.95,ancho:2.7,alto:.4});
+  }else if(estudiantes){
     const anchoHoja=.9,anchoFijo=(4.6-anchoHoja*2)/2;
     for(const lado of [-1,1]){
       const centro=lado*(anchoHoja+anchoFijo/2);
@@ -259,9 +295,16 @@ export function fachadaTorreA(padre,{x,z,largo,baseY,tipo,alto=4.4}){
     }
     hoja(-anchoHoja/2,anchoHoja,true,1);hoja(anchoHoja/2,anchoHoja,true,2);
   }else vanos.forEach((v,i)=>hoja(v.centro,v.ancho,false,i+1));
-  rotuloFachada(fachada,estudiantes?'Experiencia Estudiantil':'Sala de Conferencias',
-    {y:3.48,ancho:estudiantes?6.6:9.4,alto:estudiantes?.45:.62});
+  rotuloFachada(fachada,admision?'Informes / Admisión':estudiantes?'Experiencia Estudiantil':'Sala de Conferencias',
+    {x:admision?(inicioPuertasAdmision+finPuertasAdmision)/2:0,
+      y:3.48,ancho:admision?finPuertasAdmision-inicioPuertasAdmision:estudiantes?6.6:9.4,
+      alto:admision||estudiantes?.45:.62,ajustarAncho:admision});
   // Remate horizontal claro y luminarias discretas bajo el alero.
-  bloque(fachada,{y:alto+.09,z:.22,ancho:largo+.1,alto:.18,fondo:.9,color:'#d4d5d3'});
+  const finRemateClaro=admision?finPuertasAdmision:limiteDerecho;
+  bloque(fachada,{x:(limiteIzquierdo+finRemateClaro)/2,y:alto+.09,z:.22,
+    ancho:finRemateClaro-limiteIzquierdo+(admision?0:.1),alto:.18,fondo:.9,color:'#d4d5d3'});
+  if(admision)bloque(fachada,{x:(finPuertasAdmision+limiteDerecho)/2,
+    y:alto+elevacionMuroAdmision+.09,z:.22,
+    ancho:limiteDerecho-finPuertasAdmision,alto:.18,fondo:.9,material:negro});
   return fachada;
 }

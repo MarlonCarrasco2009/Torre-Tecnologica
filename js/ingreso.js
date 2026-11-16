@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { bloque, etiqueta } from './geometria.js?v=video-1511-vegetacion';
+import { bloque, etiqueta } from './geometria.js';
 
 // Un solo edificio: fachada hacia -Z y torniquetes hacia el patio (+Z).
 // La caja queda a la izquierda al mirar la fachada desde fuera.
@@ -114,24 +114,47 @@ export function crearIngreso(grupo,{x,z,baseY,escalaAncho=1,bordeIzquierdo=-5.9,
     c.font='bold 132px Arial';c.fillText('Campus',40,347);c.fillText('Independencia',40,464);
   });
 
-  // Seis hojas de reja, con una hoja estrecha como en la referencia frontal.
+  // Dos portones de doble hoja, un paño estrecho fijo y una puerta individual.
   const portones=new THREE.Group();portones.name='Portones del ingreso';ingreso.add(portones);
   // Las hojas quedan dentro del pórtico; el dintel y la estructura permanecen fijos.
   portones.position.z=1.75;
   const puertaZ=-2.12;
   pieza('Dintel continuo de portones',-1.75,3.18,puertaZ,7.5,.56,.32,aluminio,portones);
-  let borde=-5.5;
-  for(const [i,ancho] of [1.7,1.1,1.28,1.28,.48,1.66].entries()){
+  // Postes dentro del vano libre, fuera del volumen de los muros y la caja.
+  for(const px of [-5.12,1.77]){
+    pieza('Columna metálica fija de extremo de rejas',px,1.45,puertaZ,.24,2.9,.24,aluminio,portones);
+    pieza('Base de columna de rejas',px,.06,puertaZ,.29,.12,.29,acero,portones);
+  }
+  let borde=-5;
+  const anchosRejas=[1.4,1.4,1.28,1.28,.48,1.66].map(ancho=>ancho*6.65/7.5);
+  for(const [i,ancho] of anchosRejas.entries()){
     const hoja=new THREE.Group();hoja.name=`Hoja ${i+1} del portón`;
-    hoja.position.set(borde+ancho/2,0,puertaZ);portones.add(hoja);
+    if(i===4){
+      hoja.name='Paño estrecho fijo entre portones';
+      hoja.position.set(borde+ancho/2,0,puertaZ);portones.add(hoja);
+    }else{
+      const bisagraDerecha=i===1||i===3||i===5;
+      const pivote=new THREE.Group();pivote.name=i===5?'Puerta individual de reja':`Portón doble ${i<2?1:2} · hoja ${i%2+1}`;
+      pivote.position.set(borde+(bisagraDerecha?ancho:0),0,puertaZ);
+      Object.assign(pivote.userData,{puerta:true,puertaInteractiva:true,abierta:false,
+        // Interior del ingreso: +Z, hacia el control de torniquetes.
+        anguloAbierto:bisagraDerecha?Math.PI/2:-Math.PI/2,colisionDinamica:true,
+        grupoPuertas:`ingreso-porton-${i<2?1:i<4?2:3}`});
+      portones.add(pivote);pivote.add(hoja);
+      hoja.position.x=(bisagraDerecha?-1:1)*ancho/2;
+    }
     for(const lado of [-1,1])pieza('Marco vertical',lado*(ancho/2-.04),1.47,0,.075,2.84,.115,aluminio,hoja);
     for(const py of [.1,2.84])pieza('Marco horizontal',0,py,0,ancho,.12,.115,aluminio,hoja);
     pieza('Zócalo de hoja',0,.19,0,ancho-.1,.16,.07,aluminio,hoja);
     const cantidad=Math.round(ancho/.115);
     for(let j=1;j<cantidad;j++)pieza('Barrote de reja',-ancho/2+j*ancho/cantidad,1.53,0,.018,2.54,.03,acero,hoja);
     for(const py of [.85,2.47])pieza('Travesaño de reja',0,py,0,ancho-.1,.028,.036,acero,hoja);
+    // Una superficie continua evita que los rayos de navegación pasen entre
+    // barrotes. Se mueve con la hoja y no modifica su apariencia.
+    const colision=new THREE.MeshBasicMaterial({visible:false,side:THREE.DoubleSide});
+    pieza('Colisión continua de hoja de reja',0,1.47,0,ancho,2.84,.115,colision,hoja);
     const tirador=(i%2? -1:1)*(ancho/2-.14);
-    for(const cara of [-1,1]){
+    for(const cara of i===4?[]:[-1,1]){
       tubo(hoja,[tirador,1.03,cara*.14],[tirador,1.27,cara*.14],.018);
       for(const py of [1.03,1.27])tubo(hoja,[tirador,py,cara*.055],[tirador,py,cara*.14],.018);
     }
@@ -188,6 +211,12 @@ export function crearIngreso(grupo,{x,z,baseY,escalaAncho=1,bordeIzquierdo=-5.9,
   const punto=new THREE.Vector3();
   ingreso.traverse(obj=>{
     if(!obj.isMesh)return;
+    // Los portones se amplían como conjunto para que cada bisagra conserve
+    // su posición relativa a la hoja. Deformar solo los vértices desplazaba
+    // la hoja respecto al eje y hacía que cruzara el vano al abrirse.
+    for(let padre=obj.parent;padre;padre=padre.parent){
+      if(padre===portones)return;
+    }
     obj.geometry=obj.geometry.clone();
     const localAIngreso=new THREE.Matrix4().multiplyMatrices(inversaIngreso,obj.matrixWorld);
     const ingresoALocal=localAIngreso.clone().invert();
@@ -203,6 +232,8 @@ export function crearIngreso(grupo,{x,z,baseY,escalaAncho=1,bordeIzquierdo=-5.9,
     obj.geometry.computeBoundingBox();
     obj.geometry.computeBoundingSphere();
   });
+  portones.scale.x=1+ampliacion/(derechaVano-izquierda);
+  portones.position.x=-izquierda*(portones.scale.x-1);
   etiqueta(ingreso,'Ingreso',ampliacion/2,5.35,centroFondo,'zone','ingreso-label');
   return ingreso;
 }

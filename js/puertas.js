@@ -1,4 +1,4 @@
-// Las hojas giran sobre su bisagra hacia el patio (+Z local de la fachada).
+// Cada hoja define el signo de giro según su bisagra para abrir hacia dentro.
 export function crearPuertasFachada(escena){
   const puertas=[];
   escena.traverse(o=>{if(o.userData.puertaInteractiva)puertas.push(o);});
@@ -7,7 +7,11 @@ export function crearPuertasFachada(escena){
       let puerta=objeto;
       while(puerta&&!puerta.userData.puertaInteractiva)puerta=puerta.parent;
       if(!puerta)return false;
-      puerta.userData.abierta=!puerta.userData.abierta;
+      const abierta=!puerta.userData.abierta;
+      const grupo=puerta.userData.grupoPuertas;
+      for(const hoja of puertas){
+        if(hoja===puerta||(grupo&&hoja.userData.grupoPuertas===grupo))hoja.userData.abierta=abierta;
+      }
       return true;
     },
     actualizar(dt){

@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import {CONFIG} from './config.js?v=video-1511-vegetacion';
 import {bloque,placa,paredVidrio} from './geometria.js?v=video-1511-vegetacion';
-import {jardinContorno} from './exteriores.js?v=video-1511-vegetacion';
+import {jardinContorno} from './exteriores.js';
 
 export const PISOS_ELEVADOR=11;
 const base=CONFIG.baseY+.085;
@@ -26,7 +26,7 @@ function rotulo(grupo,texto,x,y,z,rotacion=0){
 }
 
 // Mirando desde Torre A hacia Torre C: cuatro puertas a la izquierda (+Z)
-// y dos a la derecha (-Z), corrección del usuario el 15/11/2026.
+// y dos a la derecha (-Z), según el avance del compañero.
 export const DISTRIBUCION_ELEVADORES={derecha:2,izquierda:4};
 export function crearZonaElevadores(padre,{x,z,ancho,fondo}){
   const grupo=new THREE.Group();grupo.name='Área de elevadores';grupo.position.set(x,0,z);padre.add(grupo);
@@ -40,7 +40,8 @@ export function crearZonaElevadores(padre,{x,z,ancho,fondo}){
   }
   const cepillado=new THREE.CanvasTexture(lienzo);cepillado.colorSpace=THREE.SRGBColorSpace;
   const aceroPuertas=new THREE.MeshStandardMaterial({map:cepillado,metalness:.25,roughness:.34});
-  const pared='#77716b',cabinas=[];
+  const pared='#77716b';
+  const cabinas=[];
   for(const [signo,cantidad] of [[-1,DISTRIBUCION_ELEVADORES.derecha],[1,DISTRIBUCION_ELEVADORES.izquierda]]){
     for(let i=0;i<cantidad;i++){
       const cx=-a+(i+.5)*ancho/cantidad,cz=signo*(b-1.25),frente=-signo;
@@ -112,7 +113,9 @@ export function crearZonaElevadores(padre,{x,z,ancho,fondo}){
   const limiteJardin=.16+(3.5-.16)*1.5;
   jardinContorno(grupo,[[-a,b+.16],[a-1.96,b+.16],[a-1.96,b-1.15],
     [a-.04,b-1.15],[a-.04,b+limiteJardin],[-a,b+limiteJardin]],base+.18,.65,'#08090b');
-  const datos={grupo,ancho,fondo,cabinas,niveles,crearNivel,plantaBaja};grupo.userData.zonaElevadores=datos;return datos;
+  const datos={grupo,ancho,fondo,cabinas,niveles,crearNivel,plantaBaja};
+  grupo.userData.zonaElevadores=datos;
+  return datos;
 }
 
 // Máquina de estados independiente del DOM: llamada, puertas, entrada, viaje y salida.
