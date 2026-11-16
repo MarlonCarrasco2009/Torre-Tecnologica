@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { AMBIENTES,CONFIG,distribucionInterior } from '../config.js?v=admision-126';
 import { bloque,placa,columna,etiqueta,paredVidrio,paredConPuertas,paredConPuerta,fachadaTorreA } from '../geometria.js?v=apertura-interior-175';
-import { crearZonaElevadores } from '../elevadores.js';
+import { crearZonaElevadores } from '../elevadores.js?v=entrada-doble-205';
 
 // Devuelve un grupo independiente por torre: exactamente el PRIMER piso.
 // Los demás niveles los crearán otros compañeros en módulos diferentes.
@@ -69,14 +69,18 @@ export function crearPiso1(torre, objetosSeleccionables, capaEtiquetas){
     const ancho=ambiente.ancho*factorX;
     const fondo=ambiente.fondo*factorZ+ampliacion-recorte;
     if(ambiente.id==='b-elevadores'){
-      const zona=crearZonaElevadores(grupo,{x,z,ancho,fondo});
+      // Amplía solo hacia el jardín (+Z); el borde opuesto y los extremos X quedan fijos.
+      const ensancheJardin=1.5;
+      const zona=crearZonaElevadores(grupo,{x,z:z+ensancheJardin/2,
+        ancho,fondo:fondo+ensancheJardin});
       zona.plantaBaja.suelo.userData.info={...ambiente,torre:torre.id};
       objetosSeleccionables.push(zona.plantaBaja.suelo);
       etiqueta(capaEtiquetas,ambiente.nombre,torre.x+x,CONFIG.baseY+3.6,torre.z+z);
       continue;
     }
     const divisionTopico=.75;
-    const sectores=ambiente.id==='a-atencion-alumno'?
+    // El recinto posterior queda sin rótulo de Tópico.
+    const sectores=ambiente.id==='a-topico'?[]:ambiente.id==='a-atencion-alumno'?
       [{izq:x-ancho/2,der:divisionTopico,nombre:'Tópico',id:'a-topico-lateral',
         descripcion:'Tópico con acceso por la puerta blanca lateral.'},
        {izq:divisionTopico,der:x+ancho/2,nombre:ambiente.nombre,id:ambiente.id,descripcion:ambiente.descripcion}]:
@@ -119,7 +123,14 @@ export function crearPiso1(torre, objetosSeleccionables, capaEtiquetas){
         ]});
     }
     // El lateral de Tópico se construye completo hasta la fachada nueva.
-    if(ambiente.id==='a-topico')ladosPared.delete('norte');
+    if(ambiente.id==='a-topico'){
+      ladosPared.delete('norte');
+      ladosPared.delete('este');
+      // División gruesa marcada detrás de Admisión, entre ambos muros negros.
+      bloque(grupo,{x:x+ancho/2,y:alturaCentro,z,
+        ancho:.8,alto:h,fondo,material:paredMat})
+        .name='Pared gruesa transversal detrás de Admisión';
+    }
     if(ambiente.id==='a-atencion-publico'){
       ladosPared.delete('oeste');
       const puertaAdmision=paredConPuerta(grupo,{x:x-ancho/2,z,largo:fondo,

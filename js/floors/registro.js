@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { CONFIG } from '../config.js';
-import { crearPiso1 } from './piso1.js?v=gris-topico-187';
+import { crearPiso1 } from './piso1.js?v=entrada-doble-205';
+import { aplicarCesped } from '../cesped.js';
 import { aplicarPiedraPisos } from '../piedra-piso.js?v=pizarra-pasillo-a-93';
 
 // Cada torre es un grupo independiente. Así se añaden pisos después.
@@ -12,6 +13,7 @@ export function crearTorres(escena,seleccionables,capaEtiquetas){
     edificio.position.set(torre.x,0,torre.z);
     edificio.add(crearPiso1(torre,seleccionables,capaEtiquetas));
     escena.add(edificio); grupos[torre.id]=edificio;
+    if(torre.id==='B')aplicarCesped(edificio);
     const bases=['Base del pasillo exterior de Torre A','Base del área abierta de Torre A']
       .map(nombre=>edificio.getObjectByName(nombre)).filter(Boolean);
     if(bases.length)aplicarPiedraPisos(bases,CONFIG.acabados.piso);
