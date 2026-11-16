@@ -28,7 +28,7 @@ for(let i=0;i<40;i++)control.actualizar(.02);
 for(const p of puertas){
   assert.equal(p.rotation.y,p.userData.anguloAbierto);
   const centro=p.children[0].getWorldPosition(new THREE.Vector3());
-  assert(centro.x>fachada.position.x+.4,'Todas las hojas abren al patio, nunca al auditorio');
+  assert(centro.x<fachada.position.x-.4,'Todas las hojas abren hacia el interior del auditorio');
 }
 assert.equal(puertas[0].rotation.y,-puertas[1].rotation.y);
 assert.equal(puertas[3].rotation.y,-puertas[4].rotation.y);
@@ -49,7 +49,7 @@ control.alternar(puerta.children[0]);
 for(let i=0;i<40;i++)control.actualizar(.02);
 for(let i=0;i<60;i++)nav.mover(posicion,-.04,0);
 assert(posicion.x<fachada.position.x-.4,'La colisión sigue la hoja abierta y libera el vano');
-console.log('OK: cinco vanos conservados, hojas alineadas, apertura exterior y cierre por clic.');
+console.log('OK: cinco vanos conservados, hojas alineadas, apertura interior y cierre por clic.');
 
 const escenaVidrio=new THREE.Scene();
 const estudiantes=crear(escenaVidrio,{x:35.515625,z:-16.65,largo:8.9,baseY:1.82,tipo:'estudiantes',alto:4.4});
@@ -66,10 +66,10 @@ for(const hoja of hojas){
 }
 for(let i=0;i<40;i++)vidrioControl.actualizar(.02);
 for(const hoja of hojas){
-  assert(hoja.children[0].getWorldPosition(new THREE.Vector3()).x>estudiantes.position.x+.3);
+  assert(hoja.children[0].getWorldPosition(new THREE.Vector3()).x<estudiantes.position.x-.3);
   vidrioControl.alternar(hoja.children[0]);
 }
 for(let i=0;i<40;i++)vidrioControl.actualizar(.02);
 assert(hojas.every(o=>o.rotation.y===0));
 assert.deepEqual(fijos.map(o=>o.position.toArray()),posicionesFijas);
-console.log('OK: doble puerta de vidrio alineada, apertura exterior, cierre y paños fijos conservados.');
+console.log('OK: doble puerta de vidrio alineada, apertura interior, cierre y paños fijos conservados.');
