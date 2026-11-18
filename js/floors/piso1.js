@@ -13,6 +13,7 @@ export function crearPiso1(torre, objetosSeleccionables, capaEtiquetas){
   const factorX=w/16;
   const {factorZ,desplazamientoZ}=distribucionInterior(torre);
   const posicionZ=z=>z*factorZ+desplazamientoZ;
+  const avanceElevadores=-3; // Hacia la Biblioteca en el eje Z de la Torre B.
   // Base maciza elevada: la cara superior queda a la cota de llegada de las escaleras.
   const baseInferior=.08,superficie=CONFIG.baseY+.01;
   const base={y:(baseInferior+superficie)/2,
@@ -29,6 +30,12 @@ export function crearPiso1(torre, objetosSeleccionables, capaEtiquetas){
     bloque(grupo,{...base,x:(fachada+w/2)/2,ancho:anchoPasillo,
       z:(inicioPasillo+d/2)/2,fondo:d/2-inicioPasillo})
       .name='Base del pasillo exterior de Torre A';
+  }else if(torre.id==='B'){
+    const elevadores=AMBIENTES.B.find(ambiente=>ambiente.id==='b-elevadores');
+    const bordeJardin=posicionZ(elevadores.z)+elevadores.fondo*factorZ/2-elevadores.recorteFrontal+1.5+avanceElevadores;
+    bloque(grupo,{...base,ancho:w,z:(bordeJardin-d/2)/2,fondo:bordeJardin+d/2});
+    bloque(grupo,{...base,ancho:w,z:(bordeJardin+d/2)/2,fondo:d/2-bordeJardin})
+      .name='Base frontal de Torre B';
   }else{
     bloque(grupo,{...base,ancho:w});
   }
@@ -36,16 +43,24 @@ export function crearPiso1(torre, objetosSeleccionables, capaEtiquetas){
   // Una columna gruesa en cada círculo del croquis: zonas abiertas de A y B.
   // Sustituye las filas de pilares delgados de esas dos torres.
   if(torre.id==='A'||torre.id==='B'){
+    const anchoColumna=2.8;
     if(torre.id==='B'){
-      const soporte=bloque(grupo,{x:0,z:d/2-7,y:superficie+CONFIG.altoPiso/2,
-        ancho:1.8,alto:CONFIG.altoPiso,fondo:1.8,color:CONFIG.acabados.columna});
-      soporte.name='Columna gruesa frontal - Torre B';
+      const soporteLateral=bloque(grupo,{x:4.6,z:d/2-7.5,y:superficie+CONFIG.altoPiso/2,
+        ancho:anchoColumna,alto:CONFIG.altoPiso,fondo:anchoColumna,color:CONFIG.acabados.columna});
+      soporteLateral.name='Columna frontal junto al jardín - Torre B';
+      const inicioMuro=-33.22,finMuro=-1,altoMuro=4.4;
+      const muro={x:w/2+.15,z:(inicioMuro+finMuro)/2,largo:finMuro-inicioMuro};
+      bloque(grupo,{x:muro.x,y:CONFIG.baseY+altoMuro/2,z:muro.z,ancho:.3,
+        alto:altoMuro,fondo:muro.largo,color:'#45474e'}).name='Pared lateral del nuevo jardín de Torre B';
+      for(const rotacion of [Math.PI/2,-Math.PI/2]){
+        revestirPaneles(grupo,{...muro,alto:altoMuro,rotacion});
+      }
     }
     if(torre.id==='A'){
       // La cara derecha coincide con la prolongación de la fachada marcada.
-      const anchoColumna=2.8,bordeDerecho=13*w/32;
+      const bordeDerecho=13*w/32;
       bloque(grupo,{x:bordeDerecho-anchoColumna/2,z:d/2-5.7,y:superficie+CONFIG.altoPiso/2,
-        ancho:anchoColumna,alto:CONFIG.altoPiso,fondo:2.8,color:CONFIG.acabados.columna})
+        ancho:anchoColumna,alto:CONFIG.altoPiso,fondo:anchoColumna,color:CONFIG.acabados.columna})
         .name='Columna adicional junto al jardín frontal - Torre A';
     }
   }else{
@@ -71,11 +86,12 @@ export function crearPiso1(torre, objetosSeleccionables, capaEtiquetas){
     if(ambiente.id==='b-elevadores'){
       // Amplía solo hacia el jardín (+Z); el borde opuesto y los extremos X quedan fijos.
       const ensancheJardin=1.5;
-      const zona=crearZonaElevadores(grupo,{x,z:z+ensancheJardin/2,
+      const centroZ=z+avanceElevadores;
+      const zona=crearZonaElevadores(grupo,{x,z:centroZ+ensancheJardin/2,
         ancho,fondo:fondo+ensancheJardin});
       zona.plantaBaja.suelo.userData.info={...ambiente,torre:torre.id};
       objetosSeleccionables.push(zona.plantaBaja.suelo);
-      etiqueta(capaEtiquetas,ambiente.nombre,torre.x+x,CONFIG.baseY+3.6,torre.z+z);
+      etiqueta(capaEtiquetas,ambiente.nombre,torre.x+x,CONFIG.baseY+3.6,torre.z+centroZ);
       continue;
     }
     const divisionTopico=.75;

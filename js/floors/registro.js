@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { CONFIG } from '../config.js';
-import { crearPiso1 } from './piso1.js?v=entrada-doble-205';
+import { crearPiso1 } from './piso1.js?v=elevadores-262';
 import { aplicarCesped } from '../cesped.js';
 import { aplicarPiedraPisos } from '../piedra-piso.js?v=pizarra-pasillo-a-93';
 
@@ -14,7 +14,7 @@ export function crearTorres(escena,seleccionables,capaEtiquetas){
     edificio.add(crearPiso1(torre,seleccionables,capaEtiquetas));
     escena.add(edificio); grupos[torre.id]=edificio;
     if(torre.id==='B')aplicarCesped(edificio);
-    const bases=['Base del pasillo exterior de Torre A','Base del área abierta de Torre A']
+    const bases=['Base del pasillo exterior de Torre A','Base del área abierta de Torre A','Base frontal de Torre B']
       .map(nombre=>edificio.getObjectByName(nombre)).filter(Boolean);
     if(bases.length)aplicarPiedraPisos(bases,CONFIG.acabados.piso);
   }
