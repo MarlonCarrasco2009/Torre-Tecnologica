@@ -8,6 +8,15 @@ const borde=new Function('THREE',`const materialBordeJardin=new THREE.MeshStanda
 const materialTapaJardin=new THREE.MeshStandardMaterial();
 ${funcion};return bordeJardin;`)(THREE);
 const puntos=[[-5,-5],[5,-5],[5,5],[-5,5]];
+// La ampliación debe conservar un interior válido para triangular y plantar césped.
+const definicionFranja=source.match(/const contornoFranja=([\s\S]*?);/)[1];
+const franja=new Function('inicioFranja','fachada','limiteJardinFrontal','finAmpliacion',
+  `return ${definicionFranja};`)(16.35,28+13*18.5/32,38.86,8.35);
+const interiorFranja=borde(new THREE.Group(),franja,1.9,.55,'#08090b',[3]);
+assert(interiorFranja.flat().every(Number.isFinite),'El contorno ampliado no debe producir NaN');
+const superficie=new THREE.ShapeGeometry(new THREE.Shape(interiorFranja.map(([x,z])=>new THREE.Vector2(x,z))));
+assert(superficie.index.count>0,'El jardín ampliado debe tener superficie de relleno');
+assert([...superficie.attributes.position.array].every(Number.isFinite),'El relleno debe tener vértices válidos');
 for(const contorno of [puntos,[...puntos].reverse()]){
   const grupo=new THREE.Group();
   borde(grupo,contorno,1.9);

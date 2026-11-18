@@ -73,3 +73,30 @@ for(let i=0;i<40;i++)vidrioControl.actualizar(.02);
 assert(hojas.every(o=>o.rotation.y===0));
 assert.deepEqual(fijos.map(o=>o.position.toArray()),posicionesFijas);
 console.log('OK: doble puerta de vidrio alineada, apertura interior, cierre y paños fijos conservados.');
+
+// La compactación final del campus también debe respetar los vanos.
+const franjaSource=(await readFile(new URL('../js/franja-campus.js',import.meta.url),'utf8'))
+  .replace("'three'",JSON.stringify(new URL('../.preview/three.core.mjs',import.meta.url).href));
+const {compactarFranja}=await import('data:text/javascript;base64,'+Buffer.from(franjaSource).toString('base64'));
+const campus=new THREE.Group();
+const auditorio=crear(campus,{x:35.515625,z:5.6,largo:35.6,baseY:1.82,tipo:'conferencias'});
+const paredSource=source.slice(source.indexOf('export function paredConPuerta('),source.indexOf('export function etiqueta(')).replace('export ','');
+const crearLateral=new Function('THREE',bloqueSource+paredSource+'return paredConPuerta;')(THREE);
+const lateral=crearLateral(campus,{x:20.48,z:-16.65,largo:8.9,baseY:1.82,alto:4.4,
+  rotacion:-Math.PI/2,puertaCentro:3.4,colorMuro:'#465057',interactiva:true});
+campus.updateMatrixWorld(true);
+const conjunto=[...auditorio.children.filter(o=>o.userData.puertaInteractiva).slice(-2),
+  ...lateral.children.filter(o=>o.userData.puertaInteractiva)];
+const limites=o=>new THREE.Box3().setFromObject(o);
+const antes=conjunto.map(limites);
+compactarFranja(campus);
+campus.updateMatrixWorld(true);
+for(const [i,hoja] of conjunto.entries()){
+  const despues=limites(hoja),centro=despues.getCenter(new THREE.Vector3());
+  assert(Math.abs(despues.min.z-antes[i].min.z-10.25)<1e-5);
+  const rayo=new THREE.Raycaster(new THREE.Vector3(centro.x+1,2.85,centro.z),new THREE.Vector3(-1,0,0),0,2);
+  assert(rayo.intersectObject(hoja,true).length);
+  hoja.rotation.y=hoja.userData.anguloAbierto;
+  campus.updateMatrixWorld(true);
+  assert.equal(rayo.intersectObject(hoja.parent,true).length,0,'Vano despejado al abrir después de compactar');
+}
