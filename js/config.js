@@ -2,6 +2,7 @@
 // Ejes: X = izquierda/derecha, Y = altura, Z = fondo/frente (+Z hacia el acceso principal).
 export const CONFIG = {
   anchoCampus: 116,
+  escalaLongitudinalCampus: .78,
   extensionDerecha: 24.5,
   fondoCampus: 78,
   // x conserva el acceso del cerco; desplazamientoX mueve solo el edificio hacia el patio.

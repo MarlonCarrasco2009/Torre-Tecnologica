@@ -1,9 +1,10 @@
 import * as THREE from 'three';
+import { ajustarX,ajustarZ } from './franja-campus.js?v=franja-261';
 import { CONFIG } from './config.js';
 import { crearPersonaje } from './personaje.js';
 import { crearNavegacion } from './navegacion.js?v=puertas-auditorio-95';
 
-export function crearRecorrido({escena,camara,controles,canvas,visor,etiquetas,suelo,extras,perimetro,capaEtiquetas,elevadores}){
+export function crearRecorrido({escena,campus=escena,camara,controles,canvas,visor,etiquetas,suelo,extras,perimetro,capaEtiquetas,elevadores}){
   const navegacion=crearNavegacion(escena);
   const avatar=crearPersonaje();escena.add(avatar.grupo);avatar.grupo.visible=false;
   avatar.grupo.userData.sinColision=true;
@@ -45,7 +46,7 @@ export function crearRecorrido({escena,camara,controles,canvas,visor,etiquetas,s
     elevadores.reiniciar();
     limpiar();carrera=false;correr.setAttribute('aria-pressed','false');
     // Comienza dentro del acceso inferior del croquis, sobre el piso bajo.
-    avatar.grupo.position.set(CONFIG.ingreso.x,.13,35.7);
+    campus.localToWorld(avatar.grupo.position.set(ajustarX(CONFIG.ingreso.x),.13,ajustarZ(35.7)));
     avatar.grupo.rotation.y=Math.PI;avatar.reiniciar();yaw=0;pitch=.38;distancia=6.5;
     actualizarCamara(0,true);canvas.focus({preventScroll:true});
   }
@@ -96,7 +97,7 @@ export function crearRecorrido({escena,camara,controles,canvas,visor,etiquetas,s
   document.querySelector('#btn-recorrer-c').addEventListener('click',()=>{
     if(!activo)cambiar(true);
     limpiar();elevadores.reiniciar();
-    avatar.grupo.position.set(-39.7,CONFIG.baseY+.01,12.5);
+    campus.localToWorld(avatar.grupo.position.set(ajustarX(-39.7),CONFIG.baseY+.01,ajustarZ(12.5,-39.7)));
     avatar.grupo.rotation.y=Math.PI;yaw=0;pitch=.18;distancia=3.2;
     navegacion.refrescar();actualizarCamara(0,true);canvas.focus({preventScroll:true});
   });

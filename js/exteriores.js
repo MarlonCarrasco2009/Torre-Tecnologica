@@ -1,11 +1,11 @@
 import * as THREE from 'three';
-import { CONFIG,AMBIENTES } from './config.js?v=rampas-concreto-claro-84';
+import { CONFIG,AMBIENTES } from './config.js?v=jardin-243';
 import { crearIngreso } from './ingreso.js?v=colision-rejas-piso-180';
 import { bloque,placa,columna,etiqueta } from './geometria.js';
 import { aplicarPiedraPisos } from './piedra-piso.js?v=pizarra-pasillo-a-93';
 import { aplicarCesped } from './cesped.js';
-import { cubrirJardinesConTierraYPasto } from './vegetacion.js?v=arbustos-213';
-import { crearDisenosArbustos } from './arbustos-patio.js?v=arbustos-213';
+import { cubrirJardinesConTierraYPasto } from './vegetacion.js?v=arbustos-214';
+import { crearDisenosArbustos } from './arbustos-patio.js?v=jardin-245';
 import { aplicarCementoMuros } from './cemento.js';
 import { crearLateralC } from './lateral-c.js?v=video-1511-vegetacion';
 import { crearSubterraneoC,pisoConHueco,HUECO_C,ACCESO_C } from './subterraneo-c.js?v=video-1511-vegetacion';
@@ -431,13 +431,25 @@ function crearAccesoLateral(grupo){
   const inicioFranja=CONFIG.torres.A.x-CONFIG.torres.A.ancho/2-2.4;
   const franjaFrontal=new THREE.Group();
   franjaFrontal.name='Jardín frontal continuo de Torre A e ingreso';
-  // La unión avanza en diagonal, sin el quiebre perpendicular entre jardines.
-  const contornoFranja=[[inicioFranja,34.6],[fachada-2,34.6],
+  // Entrante trapezoidal en el frente de la prolongación hacia Torre B.
+  const finAmpliacion=inicioFranja-8;
+  // Omitir la antigua unión: tres vértices colineales anulan el cálculo del borde.
+  const contornoFranja=[[fachada-2,34.6],
     [fachada+3,33.88],[65.9,32.8],[65.9,limiteJardinFrontal],
-    [inicioFranja,limiteJardinFrontal]];
+    [finAmpliacion,limiteJardinFrontal],[finAmpliacion,34.6],
+    [inicioFranja-4.05,34.6],[inicioFranja-2.55,36],
+    [inicioFranja,36],[inicioFranja+1,34.6]];
   franjaFrontal.userData.contorno=contornoFranja;
   acceso.add(franjaFrontal);
-  jardinContorno(franjaFrontal,contornoFranja,alto+.07,.55,'#08090b',[4]);
+  jardinContorno(franjaFrontal,contornoFranja,alto+.07,.55,'#08090b',[3]);
+  // Soporte rectangular hacia Torre B, desde el muro hasta el frente del jardín.
+  const baseColumnaExtremo=CONFIG.baseY+.01;
+  const alturaColumnaExtremo=CONFIG.baseY+CONFIG.altoPiso-baseColumnaExtremo;
+  const anchoColumnaExtremo=3.2,fondoColumnaExtremo=limiteJardinFrontal-34.6;
+  bloque(acceso,{x:finAmpliacion-anchoColumnaExtremo/2,z:(limiteJardinFrontal+34.6)/2,
+    y:baseColumnaExtremo+alturaColumnaExtremo/2,
+    ancho:anchoColumnaExtremo,alto:alturaColumnaExtremo,fondo:fondoColumnaExtremo,color:'#343a40'})
+    .name='Columna de esquina del jardín ampliado junto a Torre B';
   // El césped llega a la cara del muro, que cierra este lateral del jardín.
   const zMuroAdministracion=-19.6;
   const limiteJardinMuro=zMuroAdministracion-.24/2;
@@ -921,11 +933,24 @@ function unirTorresAlMuro(grupo){
       if(profundidad<.2) continue;
       const centroZ=(extremo+muro)/2;
       if(lado===1){
-        const base=.08,alto=CONFIG.baseY+CONFIG.altoPiso-base,espesor=.24;
+        const base=.08,alto=CONFIG.baseY+CONFIG.altoPiso-base,espesor=torre.id==='A'?.45:.24;
         const pared=bloque(grupo,{x:torre.x,y:base+alto/2,z:muro,
           ancho:torre.ancho,alto,fondo:espesor,material:materialFrontal});
         pared.name=`Pared frontal delgada - Torre ${torre.id}`;
-        for(const n of [-1,1]){
+        if(torre.id==='A'){
+          // Pareja idéntica en los extremos interiores del muro del jardín.
+          const grosor=1.05,largo=1.2,baseColumnas=CONFIG.baseY+.08;
+          const altoColumnas=base+alto-baseColumnas;
+          for(const ladoColumna of [-1,1]){
+            bloque(grupo,{
+              x:torre.x+ladoColumna*(torre.ancho/2-1.3),
+              y:baseColumnas+altoColumnas/2,z:muro-espesor/2-largo/2,
+              ancho:grosor,alto:altoColumnas,fondo:largo,material:materialFrontal
+            }).name=`Columna del jardín frontal A · ${ladoColumna<0?'izquierda':'derecha'}`;
+          }
+        }
+        // El jardín frontal A queda abierto a los lados de las dos columnas.
+        for(const n of (torre.id==='A'?[]:[-1,1])){
           const union=bloque(grupo,{x:torre.x+n*(torre.ancho/2-espesor/2),
             y:base+alto/2,z:(extremo+muro-espesor/2)/2,
             ancho:espesor,alto,fondo:profundidad-espesor/2,material:materialFrontal});
@@ -1042,7 +1067,13 @@ export function crearExteriores(escena){
   crearSubterraneoC(suelo,extras);
   // Conserva el relieve de las jardineras sobre los corredores ahora elevados.
   jardin(extras,-13,-30,7,6,0,nivelTorres+.285);
-  jardin(extras,13,-30,7,6,0,nivelTorres+.285);
+  const jardinLateralB=new THREE.Group();
+  jardinLateralB.name='Jardín trapezoidal entre Tópico y Torre B';
+  extras.add(jardinLateralB);
+  const caraMuroB=CONFIG.torres.B.x+CONFIG.torres.B.ancho/2+.3;
+  jardinContorno(jardinLateralB,[
+    [caraMuroB,-33.22],[16.8,-33.22],[17.49,-14.6],[caraMuroB,-14.6]
+  ],nivelTorres+.285,.35,'#33363b',[3]);
   // Extremos señalados en rojo: desde -8.9 hasta la esquina frontal de la sala.
   const salaConferencias=AMBIENTES.A.find(a=>a.id==='a-conferencias');
   const inicioJardinSala=-8.9;
@@ -1059,7 +1090,7 @@ export function crearExteriores(escena){
   aplicarCementoMuros([extras,perimetro]);
   aplicarAcabadosLateral(extras);
   const patio=extras.getObjectByName('Patio de Torre A · croquis 10 noviembre');
-  crearDisenosArbustos(patio);
+  crearDisenosArbustos(patio,CONFIG.escalaLongitudinalCampus);
   cubrirJardinesConTierraYPasto(patio);
   aplicarCesped(extras);
   aplicarRayasRampas(extras);

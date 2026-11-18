@@ -1,10 +1,11 @@
 import * as THREE from 'three';
+import { ajustarX,ajustarZ,compactarFranja } from './franja-campus.js?v=franja-261';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { CSS2DRenderer } from 'three/addons/renderers/CSS2DRenderer.js';
-import { CONFIG } from './config.js?v=rampas-concreto-claro-84';
-import { crearTorres } from './floors/registro.js?v=entrada-doble-205';
-import { crearExteriores } from './exteriores.js?v=arbustos-213';
-import { crearRecorrido } from './recorrido.js?v=puertas-auditorio-95';
+import { CONFIG } from './config.js?v=jardin-243';
+import { crearTorres } from './floors/registro.js?v=elevadores-262';
+import { crearExteriores } from './exteriores.js?v=jardin-b-248';
+import { crearRecorrido } from './recorrido.js?v=franja-261';
 import { crearPuertasFachada } from './puertas.js?v=rejas-abribles-174';
 import { crearServicioElevadores } from './elevadores.js?v=relleno-elevadores-2';
 import { crearBebederos } from './bebederos.js?v=columnas-bebederos-210';
@@ -58,33 +59,43 @@ sol.shadow.normalBias=.04;
 escena.add(sol);
 
 const objetosSeleccionables=[];
+const campus=new THREE.Group();
+escena.add(campus);
 const capaEtiquetas=new THREE.Group();
-capaEtiquetas.name='Etiquetas';escena.add(capaEtiquetas);
-const {suelo,extras,perimetro}=crearExteriores(escena);
+capaEtiquetas.name='Etiquetas';campus.add(capaEtiquetas);
+const {suelo,extras,perimetro}=crearExteriores(campus);
 const bebederos=crearBebederos(extras);
-const torres=crearTorres(escena,objetosSeleccionables,capaEtiquetas);
+const torres=crearTorres(campus,objetosSeleccionables,capaEtiquetas);
+compactarFranja(campus);
+// Conserva la posición del cerco posterior al estrechar desde el frente (+Z).
+const cercoPosterior=-CONFIG.fondoCampus/2;
+campus.scale.z=CONFIG.escalaLongitudinalCampus;
+campus.position.z=cercoPosterior*(.85-campus.scale.z);
+campus.updateMatrixWorld(true);
 const puertasFachada=crearPuertasFachada(escena);
 const zonaElevadores=escena.getObjectByName('Área de elevadores').userData.zonaElevadores;
 const elevadores=crearServicioElevadores(zonaElevadores);
 let interiorElevadores=false;
-const recorrido=crearRecorrido({escena,camara,controles,canvas:renderer.domElement,
+const recorrido=crearRecorrido({escena,campus,camara,controles,canvas:renderer.domElement,
   visor,etiquetas,suelo,extras,perimetro,capaEtiquetas,elevadores});
+
+function encuadrarCampus(x,y,z,objetivoX,objetivoY,objetivoZ){
+  campus.localToWorld(camara.position.set(ajustarX(x),y,ajustarZ(z,x)));
+  campus.localToWorld(controles.target.set(ajustarX(objetivoX),objetivoY,ajustarZ(objetivoZ,objetivoX)));
+  controles.update();
+}
 
 function vistaGeneral(){
   recorrido.salir();
   controles.minDistance=15;interiorElevadores=false;
   camara.fov=48;camara.updateProjectionMatrix();
-  camara.position.set(75,85,105);
-  controles.target.set(0,.2,0);
-  controles.update();
+  encuadrarCampus(75,85,105,0,.2,0);
   document.querySelectorAll('[data-focus]').forEach(b=>b.classList.remove('active'));
 }
 function enfocarTorre(id){
   recorrido.salir();
   const t=CONFIG.torres[id];
-  camara.position.set(t.x+25,49,t.z+53);
-  controles.target.set(t.x,0,t.z);
-  controles.update();
+  encuadrarCampus(t.x+25,49,t.z+53,t.x,0,t.z);
   document.querySelectorAll('[data-focus]').forEach(b=>b.classList.toggle('active',b.dataset.focus===id));
   mostrarInfo(`Torre ${id}`,t.descripcion,`TORRE ${id}`,'PRIMER PISO');
 }
@@ -103,9 +114,7 @@ function encuadrarIngreso(lado){
   const x=CONFIG.ingreso.x+CONFIG.ingreso.desplazamientoX+
     CONFIG.ingreso.bordeIzquierdo*(1-CONFIG.ingreso.escalaAncho);
   const z=CONFIG.ingreso.z+CONFIG.ingreso.bordeFrontal*(1-CONFIG.ingreso.escalaFondo);
-  camara.position.set(x,4.5,z+lado*16*CONFIG.ingreso.escalaFondo);
-  controles.target.set(x,CONFIG.baseY+2.15,z);
-  controles.update();
+  encuadrarCampus(x,4.5,z+lado*16*CONFIG.ingreso.escalaFondo,x,CONFIG.baseY+2.15,z);
 }
 document.addEventListener('click',e=>{
   const boton=e.target.closest('button');
@@ -129,25 +138,25 @@ document.querySelector('#btn-interior-elevadores').addEventListener('click',()=>
 });
 document.querySelector('#btn-lateral-c').addEventListener('click',()=>{
   recorrido.salir();controles.minDistance=3;
-  camara.position.set(-84,58,62);controles.target.set(-47,2,5);controles.update();
+  encuadrarCampus(-84,58,62,-47,2,5);
   capaEtiquetas.visible=false;document.querySelector('#toggle-etiquetas').checked=false;
   mostrarInfo('Jardín y comedor · Torre C','Jardinera de plantas verdes y moradas con piedras, pasillo de piedra, fachada de vidrio y comedor con sillas azules bajo lona tensada.','TORRE C','LATERAL');
 });
 document.querySelector('#btn-comedor-c').addEventListener('click',()=>{
   recorrido.salir();controles.minDistance=.5;
-  camara.position.set(-40.3,CONFIG.baseY+2.3,14.1);controles.target.set(-47,CONFIG.baseY+1.5,27);controles.update();
+  encuadrarCampus(-40.3,CONFIG.baseY+2.3,14.1,-47,CONFIG.baseY+1.5,27);
   capaEtiquetas.visible=false;document.querySelector('#toggle-etiquetas').checked=false;
   mostrarInfo('Comedor exterior · Torre C','Mesas claras, sillas azules y fachada acristalada bajo una lona tensada, junto al jardín ornamental.','TORRE C','COMEDOR');
 });
 document.querySelector('#btn-subterraneo-c').addEventListener('click',()=>{
   recorrido.salir();controles.minDistance=3;
-  camara.position.set(-40,35,-56);controles.target.set(-48,2,-20);controles.update();
+  encuadrarCampus(-40,35,-56,-48,2,-20);
   capaEtiquetas.visible=false;document.querySelector('#toggle-etiquetas').checked=false;
   mostrarInfo('Acceso al subterráneo · Torre C','Desde la entrada: caseta de registro a la izquierda y rampa a la derecha, hacia el interior. Las plantas rodean la rampa. El frente está cerrado hasta el suelo y el cerco blanco y gris integra la caseta y ambos accesos.','TORRE C','SUBTERRÁNEO');
 });
 document.querySelector('#btn-cerco-c').addEventListener('click',()=>{
   recorrido.salir();controles.minDistance=3;
-  camara.position.set(-47,7,-59);controles.target.set(-47,2.8,-38);controles.update();
+  encuadrarCampus(-47,7,-59,-47,2.8,-38);
   capaEtiquetas.visible=false;document.querySelector('#toggle-etiquetas').checked=false;
   mostrarInfo('Entrada y caseta · Torre C','Cerco continuo blanco y gris, base cerrada hasta el suelo, caseta de control a la izquierda y acceso vehicular a la derecha.','TORRE C','VISTA EXTERIOR');
 });
@@ -167,12 +176,12 @@ document.querySelector('#btn-ver-ingreso-exterior').addEventListener('click',()=
 
 document.querySelector('#btn-ver-patio').addEventListener('click',()=>{
   recorrido.salir();
-  camara.position.set(56,98,1);controles.target.set(56,0,0);controles.update();
+  encuadrarCampus(56,98,1,56,0,0);
   mostrarInfo('Patio de Torre A · Croquis','El ingreso, el paseo de Torre A y el pasillo entre jardines conectan mediante un piso horizontal. La escalera doble frontal y la rampa exterior mantienen el acceso desde el nivel bajo.','TORRE A','PLANTA DEL PATIO');
 });
 document.querySelector('#btn-ver-fachadas').addEventListener('click',()=>{
   recorrido.salir();
-  camara.position.set(87,17,7);controles.target.set(35.5,3.5,1);controles.update();
+  encuadrarCampus(87,17,7,35.5,3.5,1);
   capaEtiquetas.visible=false;document.querySelector('#toggle-etiquetas').checked=false;
   mostrarInfo('Conferencias y Atención al Estudiante','Paneles grises y claros; cinco puertas de conferencias y doble puerta delgada de vidrio en Experiencia Estudiantil.','TORRE A','FACHADAS');
 });
@@ -182,9 +191,7 @@ document.querySelector('#btn-restablecer').addEventListener('click',vistaGeneral
 document.querySelector('#btn-isometrica').addEventListener('click',vistaGeneral);
 document.querySelector('#btn-planta').addEventListener('click',()=>{
   recorrido.salir();
-  camara.position.set(0,120,.1);
-  controles.target.set(0,0,0);
-  controles.update();
+  encuadrarCampus(0,120,.1,0,0,0);
 });
 document.querySelector('#toggle-muros').addEventListener('change',e=>{perimetro.visible=e.target.checked;});
 document.querySelector('#toggle-exteriores').addEventListener('change',e=>{extras.visible=e.target.checked;});

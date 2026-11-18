@@ -83,7 +83,9 @@ export function cubrirJardinesConTierraYPasto(grupo){
         if(malla.userData.zonasArbustos){
           const local=malla.worldToLocal(punto.clone());
           if(malla.userData.zonasArbustos.some(zona=>{
-            const dx=(local.x-zona.x)/(zona.fondo/2+.17),dz=(local.z-zona.z)/(zona.ancho/2+.17);
+            const cos=Math.cos(zona.giro??0),sin=Math.sin(zona.giro??0);
+            const x=local.x-zona.x,z=local.z-zona.z;
+            const dx=(cos*x-sin*z)/(zona.fondo/2+.17),dz=(sin*x+cos*z)/(zona.ancho/2+.17);
             return zona.circular?dx*dx+dz*dz<=1:Math.abs(dx)<=1&&Math.abs(dz)<=1;
           }))continue;
         }
