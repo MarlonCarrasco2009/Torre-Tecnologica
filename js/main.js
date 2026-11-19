@@ -1,13 +1,14 @@
 import * as THREE from 'three';
-import { ajustarX,ajustarZ,compactarFranja } from './franja-campus.js?v=franja-261';
+import { ajustarX,ajustarZ,compactarFranja } from './franja-campus.js?v=borde-295';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { CSS2DRenderer } from 'three/addons/renderers/CSS2DRenderer.js';
 import { CONFIG } from './config.js?v=jardin-243';
-import { crearTorres } from './floors/registro.js?v=elevadores-262';
-import { crearExteriores } from './exteriores.js?v=jardin-b-248';
-import { crearRecorrido } from './recorrido.js?v=franja-261';
+import { ajustarPizarraFinal } from './piedra-piso.js?v=pizarra-279';
+import { crearTorres } from './floors/registro.js?v=pasillos-292';
+import { crearExteriores } from './exteriores.js?v=borde-295';
+import { crearRecorrido } from './recorrido.js?v=pasillos-292';
 import { crearPuertasFachada } from './puertas.js?v=rejas-abribles-174';
-import { crearServicioElevadores } from './elevadores.js?v=relleno-elevadores-2';
+import { crearServicioElevadores } from './elevadores.js?v=camara-cabina-293';
 import { crearBebederos } from './bebederos.js?v=columnas-bebederos-210';
 
 const visor=document.querySelector('#visor');
@@ -72,6 +73,7 @@ const cercoPosterior=-CONFIG.fondoCampus/2;
 campus.scale.z=CONFIG.escalaLongitudinalCampus;
 campus.position.z=cercoPosterior*(.85-campus.scale.z);
 campus.updateMatrixWorld(true);
+ajustarPizarraFinal(campus);
 const puertasFachada=crearPuertasFachada(escena);
 const zonaElevadores=escena.getObjectByName('Área de elevadores').userData.zonaElevadores;
 const elevadores=crearServicioElevadores(zonaElevadores);

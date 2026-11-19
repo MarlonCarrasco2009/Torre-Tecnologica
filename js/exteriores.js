@@ -1,11 +1,12 @@
 import * as THREE from 'three';
+import { ajustarZ } from './franja-campus.js?v=pasillos-292';
 import { CONFIG,AMBIENTES } from './config.js?v=jardin-243';
 import { crearIngreso } from './ingreso.js?v=colision-rejas-piso-180';
 import { bloque,placa,columna,etiqueta } from './geometria.js';
-import { aplicarPiedraPisos } from './piedra-piso.js?v=pizarra-pasillo-a-93';
+import { aplicarPiedraPisos } from './piedra-piso.js?v=pizarra-279';
 import { aplicarCesped } from './cesped.js';
-import { cubrirJardinesConTierraYPasto } from './vegetacion.js?v=arbustos-214';
-import { crearDisenosArbustos } from './arbustos-patio.js?v=jardin-245';
+import { cubrirJardinesConTierraYPasto } from './vegetacion.js?v=pasillos-292';
+import { crearDisenosArbustos } from './arbustos-patio.js?v=jardin-266';
 import { aplicarCementoMuros } from './cemento.js';
 import { crearLateralC } from './lateral-c.js?v=video-1511-vegetacion';
 import { crearSubterraneoC,pisoConHueco,HUECO_C,ACCESO_C } from './subterraneo-c.js?v=video-1511-vegetacion';
@@ -65,8 +66,10 @@ function bordeJardin(grupo,puntos,nivelCesped,espesor=.5,colorBorde=null,ladosAb
   // Intersección de los lados desplazados: esquinas unidas, también en entrantes.
   const interior=puntos.map(([x,z],i)=>{
     const anterior=normales[(i+puntos.length-1)%puntos.length],actual=normales[i];
-    const distanciaAnterior=ladosAbiertos.includes((i+puntos.length-1)%puntos.length)?0:espesor;
-    const distanciaActual=ladosAbiertos.includes(i)?0:espesor;
+    const distancia=lado=>ladosAbiertos.includes(lado)?0:
+      typeof espesor==='function'?espesor(lado,z):espesor;
+    const distanciaAnterior=distancia((i+puntos.length-1)%puntos.length);
+    const distanciaActual=distancia(i);
     const producto=anterior.dot(actual),denominador=1-producto*producto;
     const desplazamiento=anterior.clone().multiplyScalar((distanciaAnterior-producto*distanciaActual)/denominador)
       .addScaledVector(actual,(distanciaActual-producto*distanciaAnterior)/denominador);
@@ -437,11 +440,24 @@ function crearAccesoLateral(grupo){
   const contornoFranja=[[fachada-2,34.6],
     [fachada+3,33.88],[65.9,32.8],[65.9,limiteJardinFrontal],
     [finAmpliacion,limiteJardinFrontal],[finAmpliacion,34.6],
-    [inicioFranja-4.05,34.6],[inicioFranja-2.55,36],
-    [inicioFranja,36],[inicioFranja+1,34.6]];
+    [inicioFranja,34.6],[inicioFranja+.55,36],
+    [inicioFranja+2.35,36],[inicioFranja+3.1,34.6]];
   franjaFrontal.userData.contorno=contornoFranja;
   acceso.add(franjaFrontal);
-  jardinContorno(franjaFrontal,contornoFranja,alto+.07,.55,'#08090b',[3]);
+  // Recupera el grosor hacia la tierra en el lado del paseo que se comprime en Z.
+  const grosorFranja=(lado,z)=>{
+    if(lado>=2&&lado<=4)return .55;
+    const grosor=.55/CONFIG.escalaLongitudinalCampus;
+    const objetivo=ajustarZ(z,0)+grosor;
+    let inferior=z,superior=z+3;
+    for(let i=0;i<20;i++){
+      const medio=(inferior+superior)/2;
+      if(ajustarZ(medio,0)<objetivo)inferior=medio;
+      else superior=medio;
+    }
+    return superior-z;
+  };
+  jardinContorno(franjaFrontal,contornoFranja,alto+.07,grosorFranja,'#08090b',[3]);
   // Soporte rectangular hacia Torre B, desde el muro hasta el frente del jardín.
   const baseColumnaExtremo=CONFIG.baseY+.01;
   const alturaColumnaExtremo=CONFIG.baseY+CONFIG.altoPiso-baseColumnaExtremo;
@@ -1023,6 +1039,7 @@ function marcarZonasSeguras(grupo){
   for(const [x,z,y,diametro,giro] of [[72,30,.16,6.8,Math.PI/2],[54,-17,1.37,4.4,0]]){
     const marca=new THREE.Mesh(new THREE.PlaneGeometry(diametro,diametro),material);
     marca.name='Círculo de seguridad · S';marca.rotation.x=-Math.PI/2;
+    marca.userData.conservarForma=true;
     marca.rotation.z=giro;
     marca.position.set(x,y,z);marca.userData.sinColision=true;grupo.add(marca);
   }
@@ -1072,14 +1089,20 @@ export function crearExteriores(escena){
   extras.add(jardinLateralB);
   const caraMuroB=CONFIG.torres.B.x+CONFIG.torres.B.ancho/2+.3;
   jardinContorno(jardinLateralB,[
-    [caraMuroB,-33.22],[16.8,-33.22],[17.49,-14.6],[caraMuroB,-14.6]
+    [caraMuroB,-33.22],[16.65,-33.22],[17.15,-14.6],[caraMuroB,-14.6]
   ],nivelTorres+.285,.35,'#33363b',[3]);
   // Extremos señalados en rojo: desde -8.9 hasta la esquina frontal de la sala.
   const salaConferencias=AMBIENTES.A.find(a=>a.id==='a-conferencias');
   const inicioJardinSala=-8.9;
   const finJardinSala=CONFIG.torres.A.z+salaConferencias.z+salaConferencias.fondo/2;
-  jardinAbierto(extras,{x:18.490074,z:(inicioJardinSala+finJardinSala)/2,
-    ancho:4.119852,fondo:finJardinSala-inicioJardinSala,altura:nivelTorres+.285,abierto:'este'});
+  const jardinSala=new THREE.Group();
+  jardinSala.name='Jardín lateral de Sala de Conferencias';
+  extras.add(jardinSala);
+  const anchoJardinSala=6.65;
+  // Los extremos del jardín siguen la misma cota que el encuentro con la fachada.
+  jardinSala.userData.referenciaLongitudinalX=20.55;
+  jardinAbierto(jardinSala,{x:jardinSala.userData.referenciaLongitudinalX-anchoJardinSala/2,z:(inicioJardinSala+finJardinSala)/2,
+    ancho:anchoJardinSala,fondo:finJardinSala-inicioJardinSala,altura:nivelTorres+.285,abierto:'este'});
   crearAccesoLateral(extras);
   // Pasarelas y pórticos que unen las torres entre sí y con el cerco.
   unirTorresEntreSi(extras);
@@ -1092,6 +1115,8 @@ export function crearExteriores(escena){
   const patio=extras.getObjectByName('Patio de Torre A · croquis 10 noviembre');
   crearDisenosArbustos(patio,CONFIG.escalaLongitudinalCampus);
   cubrirJardinesConTierraYPasto(patio);
+  cubrirJardinesConTierraYPasto(jardinLateralB);
+  cubrirJardinesConTierraYPasto(jardinSala,z=>ajustarZ(z,jardinSala.userData.referenciaLongitudinalX));
   aplicarCesped(extras);
   aplicarRayasRampas(extras);
   marcarZonasSeguras(extras);

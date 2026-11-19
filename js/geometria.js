@@ -184,7 +184,8 @@ function rotuloFachada(padre,texto,{x=0,y,z=.205,ancho,alto=.48,color='#f4f3ef',
 }
 
 // Dos fachadas del patio de A: huecos reales y hojas que abren hacia el interior.
-export function fachadaTorreA(padre,{x,z,largo,baseY,tipo,alto=4.4}){
+export function fachadaTorreA(padre,{x,z,largo,baseY,tipo,alto=4.4,
+  finPanel=(inicio,limite,ancho)=>Math.min(limite,inicio+ancho)}){
   const fachada=new THREE.Group();fachada.position.set(x,baseY,z);fachada.rotation.y=Math.PI/2;
   fachada.name=tipo==='admision'?'Fachada de Informes / Admisión':tipo==='estudiantes'?'Fachada de Experiencia Estudiantil':'Fachada de Sala de Conferencias';
   padre.add(fachada);
@@ -223,7 +224,7 @@ export function fachadaTorreA(padre,{x,z,largo,baseY,tipo,alto=4.4}){
   }
   let borde=limiteIzquierdo,indice=0;
   while(borde<limiteDerecho-.001){
-    const fin=Math.min(limiteDerecho,borde+anchos[indice%anchos.length]);
+    const fin=finPanel(borde,limiteDerecho,anchos[indice%anchos.length]);
     const corte=[1.3,2.1,3.2,1.85][indice%4];
     for(const [fila,[abajo,arriba]] of [[0,corte],[corte,alto]].entries()){
       for(const s of segmentos){

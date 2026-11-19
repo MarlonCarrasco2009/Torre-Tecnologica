@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import {plantarCobertura,tierraJardin} from './vegetacion.js?v=arbustos-214';
+import {plantarCobertura,tierraJardin} from './vegetacion.js?v=jardin-265';
 
 // Los motivos se leen desde el pasillo exterior: izquierda (+Z) a derecha (-Z).
 export function crearDisenosArbustos(patio,escalaZ){
@@ -11,19 +11,20 @@ export function crearDisenosArbustos(patio,escalaZ){
   // para los centros, las bases y el follaje de los tres motivos.
   const pendiente=(68-63.9)/39;
   const giro=Math.atan(pendiente);
-  // Retira el conjunto hacia el interior sin cambiar el ángulo del borde.
-  const separacionEjeMuro=4.8;
+  const separacionEjeMuro=3.55;
   const zonas=[
-    {id:1,z:20,ancho:5.4,fondo:5.4,circular:true,nombre:'Emblema circular de arbustos'},
-    {id:2,z:10.2,ancho:6.3,fondo:4.2,nombre:'Bandera peruana de arbustos'},
-    {id:3,z:-.6,ancho:8.3,fondo:3.6,nombre:'SENATI en arbustos claros'}
-  ].map(zona=>({...zona,ancho:zona.ancho/escalaZ,x:63.9+(zona.z+14)*pendiente-separacionEjeMuro,giro}));
+    {id:1,z:20.6,ancho:5,fondo:5,retiroAdicional:.8,circular:true,conservarForma:true,nombre:'Emblema circular de arbustos'},
+    {id:2,z:5.75,ancho:5.4,fondo:3.8,nombre:'Bandera peruana de arbustos'},
+    {id:3,z:-3.3,ancho:6.1,fondo:2.55,nombre:'SENATI en arbustos claros'}
+  ].map(zona=>({...zona,ancho:zona.ancho/escalaZ,x:63.9+(zona.z+14)*pendiente-separacionEjeMuro-(zona.retiroAdicional??0),
+    giro:zona.circular?0:giro}));
   // Reserva estas huellas para que la cobertura verde no tape los dibujos.
   suelo.userData.zonasArbustos=zonas;
   for(const zona of zonas){
     const grupo=new THREE.Group();grupo.name=zona.nombre;jardin.add(grupo);
     grupo.position.set(zona.x,0,zona.z);grupo.rotation.y=zona.giro;
     grupo.userData.sinColision=true;
+    grupo.userData.conservarForma=zona.conservarForma;
     const canvas=document.createElement('canvas');canvas.width=1024;canvas.height=512;
     const ctx=canvas.getContext('2d');
     ctx.fillStyle='#000000';ctx.fillRect(0,0,1024,512);
@@ -59,7 +60,7 @@ export function crearDisenosArbustos(patio,escalaZ){
       forma.moveTo(-zona.fondo/2,-zona.ancho/2);forma.lineTo(zona.fondo/2,-zona.ancho/2);
       forma.lineTo(zona.fondo/2,zona.ancho/2);forma.lineTo(-zona.fondo/2,zona.ancho/2);forma.closePath();
     }
-    const geo=new THREE.ExtrudeGeometry(forma,{depth:.13,bevelEnabled:false});geo.rotateX(-Math.PI/2);
+    const geo=new THREE.ExtrudeGeometry(forma,{depth:.13,bevelEnabled:false,curveSegments:64});geo.rotateX(-Math.PI/2);
     const tierra=new THREE.Mesh(geo,tierraJardin());tierra.position.set(0,nivel+.01,0);
     tierra.receiveShadow=true;grupo.add(tierra);
     const puntos=[];
@@ -75,6 +76,16 @@ export function crearDisenosArbustos(patio,escalaZ){
       const emblema=zona.id===1;
       puntos.push({x:v-zona.fondo/2,y:nivel+.15+(emblema&&!claro?.07:0),z:zona.ancho/2-u,
         color:claro?(emblema?'#b7c6a5':'#c4d0b2'):(emblema?'#8a3447':'#713044')});
+    }
+    if(zona.circular){
+      // Cierra el perímetro entre el tapiz interior y el canto de la jardinera.
+      const radio=zona.fondo/2-paso/2;
+      const cantidad=Math.ceil(2*Math.PI*radio/paso);
+      for(let i=0;i<cantidad;i++){
+        const angulo=2*Math.PI*i/cantidad;
+        puntos.push({x:radio*Math.cos(angulo),y:nivel+.22,
+          z:radio*Math.sin(angulo)/escalaZ,color:'#8a3447'});
+      }
     }
     const plantas=plantarCobertura(grupo,puntos,212+zona.id,
       {escala:zona.id===1?.4:.5,dispersion:.012,variacionColor:.025});

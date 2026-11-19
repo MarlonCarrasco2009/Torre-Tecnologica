@@ -296,8 +296,12 @@ export function crearServicioElevadores(zona){
     camara(){
       if(!seleccion||!['dentro','cerrando','viajando','abriendo','entrando','saliendo'].includes(fase))return null;
       const y=seleccion.grupo.position.y;
-      return {posicion:mundo(seleccion.x+.6,y+4.5,seleccion.z+seleccion.frente*3.4),
-        objetivo:mundo(seleccion.x,y+1,seleccion.z)};
+      // Bajo el techo del vestíbulo durante el acceso; dentro de la cabina en el viaje.
+      const enCabina=!seleccion.techo.visible;
+      const posicion=enCabina
+        ?mundo(seleccion.x+.98,y+2.48,seleccion.z+seleccion.frente*.78)
+        :mundo(seleccion.x+.45,y+2.05,seleccion.z+seleccion.frente*3.1);
+      return {posicion,objetivo:mundo(seleccion.x,y+1.2,seleccion.z)};
     }
   };
 }

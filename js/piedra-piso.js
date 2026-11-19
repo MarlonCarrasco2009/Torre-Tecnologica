@@ -34,7 +34,8 @@ export function aplicarPiedraPisos(grupos,colorPiso){
   const relieve=mapa.clone();relieve.colorSpace=THREE.NoColorSpace;relieve.needsUpdate=true;
   const material=new THREE.MeshStandardMaterial({map:mapa,bumpMap:relieve,bumpScale:.075,
     roughness:.78,metalness:0});
-  const colorOriginal=new THREE.Color(colorPiso),punto=new THREE.Vector3(),normal=new THREE.Vector3();
+  material.userData.pizarra=true;
+  const colorOriginal=new THREE.Color(colorPiso);
   for(const grupo of grupos){
     grupo.updateWorldMatrix(true,true);
     grupo.traverse(obj=>{
@@ -43,17 +44,44 @@ export function aplicarPiedraPisos(grupos,colorPiso){
       if(!pisoIngreso&&!obj.material.color?.equals(colorOriginal))return;
       // Las rampas mantienen su material claro original.
       if(obj.name.toLowerCase().includes('rampa'))return;
-      const geometria=obj.geometry.clone(),pos=geometria.attributes.position,norm=geometria.attributes.normal;
-      const uv=new Float32Array(pos.count*2),matNormal=new THREE.Matrix3().getNormalMatrix(obj.matrixWorld);
-      for(let i=0;i<pos.count;i++){
-        punto.fromBufferAttribute(pos,i).applyMatrix4(obj.matrixWorld);
-        normal.fromBufferAttribute(norm,i).applyMatrix3(matNormal).normalize();
-        if(Math.abs(normal.y)>.6){uv[i*2]=punto.x/4;uv[i*2+1]=punto.z/4;}
-        else if(Math.abs(normal.x)>Math.abs(normal.z)){uv[i*2]=punto.z/4;uv[i*2+1]=punto.y/4;}
-        else{uv[i*2]=punto.x/4;uv[i*2+1]=punto.y/4;}
-      }
-      geometria.setAttribute('uv',new THREE.BufferAttribute(uv,2));
-      obj.geometry=geometria;obj.material=material;
+      obj.material=material;
     });
   }
+}
+
+export function ajustarPizarraFinal(campus){
+  const punto=new THREE.Vector3(),normal=new THREE.Vector3();
+  const pisos=[],materiales=new Map();
+  campus.traverse(obj=>{
+    if(!obj.material?.userData?.pizarra)return;
+    const geometria=obj.geometry.clone(),pos=geometria.attributes.position,norm=geometria.attributes.normal;
+    const uv=new Float32Array(pos.count*2),matNormal=new THREE.Matrix3().getNormalMatrix(obj.matrixWorld);
+    for(let i=0;i<pos.count;i++){
+      punto.fromBufferAttribute(pos,i).applyMatrix4(obj.matrixWorld);
+      normal.fromBufferAttribute(norm,i).applyMatrix3(matNormal).normalize();
+      if(Math.abs(normal.y)>.6){uv[i*2]=punto.x/4;uv[i*2+1]=punto.z/4;}
+      else if(Math.abs(normal.x)>Math.abs(normal.z)){uv[i*2]=punto.z/4;uv[i*2+1]=punto.y/4;}
+      else{uv[i*2]=punto.x/4;uv[i*2+1]=punto.y/4;}
+    }
+    geometria.setAttribute('uv',new THREE.BufferAttribute(uv,2));
+    obj.geometry=geometria;
+    // Da prioridad estable a los acabados que comparten parte de su cara superior.
+    const caja=new THREE.Box3().setFromObject(obj,true);
+    const ocupadas=new Set();
+    for(const piso of pisos){
+      const otra=piso.caja;
+      if(Math.abs(caja.max.y-otra.max.y)<.002&&caja.min.x<otra.max.x-.001&&caja.max.x>otra.min.x+.001
+        &&caja.min.z<otra.max.z-.001&&caja.max.z>otra.min.z+.001)ocupadas.add(piso.capa);
+    }
+    let capa=0;
+    while(ocupadas.has(capa))capa++;
+    pisos.push({caja,capa});
+    if(!capa)return;
+    if(!materiales.has(capa)){
+      const acabado=obj.material.clone();
+      acabado.polygonOffset=true;acabado.polygonOffsetUnits=-4*capa;
+      materiales.set(capa,acabado);
+    }
+    obj.material=materiales.get(capa);
+  });
 }

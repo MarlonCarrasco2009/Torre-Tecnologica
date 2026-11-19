@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { ajustarX,ajustarZ } from './franja-campus.js?v=franja-261';
+import { ajustarX,ajustarZ } from './franja-campus.js?v=pasillos-292';
 import { CONFIG } from './config.js';
 import { crearPersonaje } from './personaje.js';
 import { crearNavegacion } from './navegacion.js?v=puertas-auditorio-95';

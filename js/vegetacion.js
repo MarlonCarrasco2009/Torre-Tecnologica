@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {ajustarZ} from './franja-campus.js?v=pasillos-292';
 
 // Follaje de cobertura: una geometría compartida para miles de plantas.
 // Las hojas tienen nervadura elevada y dos alturas, sin siluetas poliédricas.
@@ -55,7 +56,7 @@ export function tierraJardin(){
 }
 
 // Usa las superficies reales para respetar jardines inclinados, entrantes y bordes.
-export function cubrirJardinesConTierraYPasto(grupo){
+export function cubrirJardinesConTierraYPasto(grupo,proyectarZ=ajustarZ){
   const verde=new THREE.Color('#3a9676'),superficies=[];
   grupo.updateWorldMatrix(true,true);
   grupo.traverse(o=>{
@@ -68,6 +69,10 @@ export function cubrirJardinesConTierraYPasto(grupo){
   const tonos=['#628244','#77994b','#8ba954','#527a38'];
   for(const [indice,malla] of superficies.entries()){
     const limites=new THREE.Box3().setFromObject(malla),puntos=[];
+    const zonas=(malla.userData.zonasArbustos??[]).map(zona=>{
+      const centro=malla.localToWorld(new THREE.Vector3(zona.x,0,zona.z));
+      return {...zona,zCompactada:proyectarZ(centro.z,centro.x)};
+    });
     const materiales=Array.isArray(malla.material)?malla.material:[malla.material];
     const superficie=(x,z)=>{
       rayo.set(new THREE.Vector3(x,limites.max.y+.5,z),abajo);
@@ -76,15 +81,33 @@ export function cubrirJardinesConTierraYPasto(grupo){
       normal.copy(hit.face.normal).transformDirection(malla.matrixWorld);
       return normal.y>.95?hit.point:null;
     };
-    for(let x=limites.min.x+.22;x<limites.max.x-.22;x+=.29){
-      for(let z=limites.min.z+.22;z<limites.max.z-.22;z+=.29){
+    const paso=.29;
+    for(let fila=0; ;fila++){
+      const x=limites.min.x+.22+fila*paso;
+      if(x>=limites.max.x-.22)break;
+      const inicio=limites.min.z+.22,fin=limites.max.z-.22;
+      const finCompactado=proyectarZ(fin,x);
+      // Alterna las filas en la planta final para cubrir las uniones entre tramos.
+      for(let destino=proyectarZ(inicio,x)+(fila%2)*paso/2;destino<finCompactado;destino+=paso){
+        // El raycast usa el jardín original. Localiza el punto que llegará a destino.
+        let inferior=inicio,superior=fin;
+        while(superior-inferior>.0001){
+          const medio=(inferior+superior)/2;
+          if(proyectarZ(medio,x)<destino)inferior=medio;
+          else superior=medio;
+        }
+        const z=(inferior+superior)/2;
         const punto=superficie(x,z);
         if(!punto)continue;
-        if(malla.userData.zonasArbustos){
+        if(zonas.length){
           const local=malla.worldToLocal(punto.clone());
-          if(malla.userData.zonasArbustos.some(zona=>{
+          if(zonas.some(zona=>{
             const cos=Math.cos(zona.giro??0),sin=Math.sin(zona.giro??0);
-            const x=local.x-zona.x,z=local.z-zona.z;
+            const x=local.x-zona.x;
+            // El emblema se traslada entero; el césped se compacta planta por planta.
+            const z=zona.conservarForma
+              ?proyectarZ(punto.z,punto.x)-zona.zCompactada
+              :local.z-zona.z;
             const dx=(cos*x-sin*z)/(zona.fondo/2+.17),dz=(sin*x+cos*z)/(zona.ancho/2+.17);
             return zona.circular?dx*dx+dz*dz<=1:Math.abs(dx)<=1&&Math.abs(dz)<=1;
           }))continue;
