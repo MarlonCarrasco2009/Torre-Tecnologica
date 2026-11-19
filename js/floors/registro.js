@@ -1,8 +1,8 @@
 import * as THREE from 'three';
 import { CONFIG } from '../config.js';
-import { crearPiso1 } from './piso1.js?v=elevadores-262';
-import { aplicarCesped } from '../cesped.js';
-import { aplicarPiedraPisos } from '../piedra-piso.js?v=pizarra-pasillo-a-93';
+import { crearPiso1 } from './piso1.js?v=pasillos-292';
+import { cubrirJardinesConTierraYPasto } from '../vegetacion.js?v=pasillos-292';
+import { aplicarPiedraPisos } from '../piedra-piso.js?v=pizarra-279';
 
 // Cada torre es un grupo independiente. Así se añaden pisos después.
 export function crearTorres(escena,seleccionables,capaEtiquetas){
@@ -13,7 +13,10 @@ export function crearTorres(escena,seleccionables,capaEtiquetas){
     edificio.position.set(torre.x,0,torre.z);
     edificio.add(crearPiso1(torre,seleccionables,capaEtiquetas));
     escena.add(edificio); grupos[torre.id]=edificio;
-    if(torre.id==='B')aplicarCesped(edificio);
+    if(torre.id==='B'){
+      // El jardín de elevadores se traslada entero durante la compactación.
+      cubrirJardinesConTierraYPasto(edificio.getObjectByName('Área de elevadores'),z=>z);
+    }
     const bases=['Base del pasillo exterior de Torre A','Base del área abierta de Torre A','Base frontal de Torre B']
       .map(nombre=>edificio.getObjectByName(nombre)).filter(Boolean);
     if(bases.length)aplicarPiedraPisos(bases,CONFIG.acabados.piso);

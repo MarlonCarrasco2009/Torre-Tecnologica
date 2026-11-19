@@ -1,6 +1,7 @@
 import * as THREE from 'three';
+import { ajustarX,ajustarZ } from '../franja-campus.js?v=pasillos-292';
 import { AMBIENTES,CONFIG,distribucionInterior } from '../config.js?v=admision-126';
-import { bloque,placa,columna,etiqueta,paredVidrio,paredConPuertas,paredConPuerta,fachadaTorreA } from '../geometria.js?v=apertura-interior-175';
+import { bloque,placa,columna,etiqueta,paredVidrio,paredConPuertas,paredConPuerta,fachadaTorreA } from '../geometria.js?v=paneles-269';
 import { crearZonaElevadores } from '../elevadores.js?v=entrada-doble-205';
 
 // Devuelve un grupo independiente por torre: exactamente el PRIMER piso.
@@ -43,25 +44,29 @@ export function crearPiso1(torre, objetosSeleccionables, capaEtiquetas){
   // Una columna gruesa en cada círculo del croquis: zonas abiertas de A y B.
   // Sustituye las filas de pilares delgados de esas dos torres.
   if(torre.id==='A'||torre.id==='B'){
-    const anchoColumna=2.8;
+    const anchoColumna=1.9;
+    // Compensa la escala Z del campus para conservar la sección cuadrada en planta.
+    const fondoColumna=anchoColumna/CONFIG.escalaLongitudinalCampus;
+    const retiroDelJardin=1.2;
     if(torre.id==='B'){
-      const soporteLateral=bloque(grupo,{x:4.6,z:d/2-7.5,y:superficie+CONFIG.altoPiso/2,
-        ancho:anchoColumna,alto:CONFIG.altoPiso,fondo:anchoColumna,color:CONFIG.acabados.columna});
+      const soporteLateral=bloque(grupo,{x:4.6,z:d/2-7.5-retiroDelJardin,y:superficie+CONFIG.altoPiso/2,
+        ancho:anchoColumna,alto:CONFIG.altoPiso,fondo:fondoColumna,color:CONFIG.acabados.columna});
+      soporteLateral.userData.conservarForma=true;
       soporteLateral.name='Columna frontal junto al jardín - Torre B';
       const inicioMuro=-33.22,finMuro=-1,altoMuro=4.4;
       const muro={x:w/2+.15,z:(inicioMuro+finMuro)/2,largo:finMuro-inicioMuro};
       bloque(grupo,{x:muro.x,y:CONFIG.baseY+altoMuro/2,z:muro.z,ancho:.3,
         alto:altoMuro,fondo:muro.largo,color:'#45474e'}).name='Pared lateral del nuevo jardín de Torre B';
       for(const rotacion of [Math.PI/2,-Math.PI/2]){
-        revestirPaneles(grupo,{...muro,alto:altoMuro,rotacion});
+        revestirPaneles(grupo,{torre,...muro,alto:altoMuro,rotacion});
       }
     }
     if(torre.id==='A'){
-      // La cara derecha coincide con la prolongación de la fachada marcada.
-      const bordeDerecho=13*w/32;
-      bloque(grupo,{x:bordeDerecho-anchoColumna/2,z:d/2-5.7,y:superficie+CONFIG.altoPiso/2,
-        ancho:anchoColumna,alto:CONFIG.altoPiso,fondo:anchoColumna,color:CONFIG.acabados.columna})
-        .name='Columna adicional junto al jardín frontal - Torre A';
+      const ejeColumnaFrontal=13*w/32-1.15;
+      const soporteFrontal=bloque(grupo,{x:ejeColumnaFrontal,z:d/2-5.7-retiroDelJardin,y:superficie+CONFIG.altoPiso/2,
+        ancho:anchoColumna,alto:CONFIG.altoPiso,fondo:fondoColumna,color:CONFIG.acabados.columna});
+      soporteFrontal.name='Columna adicional junto al jardín frontal - Torre A';
+      soporteFrontal.userData.conservarForma=true;
     }
   }else{
     // La cafetería queda abierta: se retiran sus cuatro columnas frontales.
@@ -132,7 +137,7 @@ export function crearPiso1(torre, objetosSeleccionables, capaEtiquetas){
       hoja.userData.anguloAbierto=Math.PI/2;
       detallesTopico(acceso,fondo/2-1.05);
       const centroPuerta=fondo/2-1.05;
-      revestirPaneles(grupo,{x:x-ancho/2,z,largo:fondo,alto:h,rotacion:-Math.PI/2,
+      revestirPaneles(grupo,{torre,x:x-ancho/2,z,largo:fondo,alto:h,rotacion:-Math.PI/2,
         huecos:[
           [centroPuerta-.715,centroPuerta+.715,0,2.57],
           [centroPuerta-3.175,centroPuerta-.925,2.4175,3.1325]
@@ -154,7 +159,7 @@ export function crearPiso1(torre, objetosSeleccionables, capaEtiquetas){
         colorMuro:CONFIG.acabados.pared,colorPuerta:'#f3f2ed',colorMarco:'#d6d8d4',interactiva:true});
       puertaAdmision.name='Acceso blanco lateral de Informes y Admisión';
       const centroPuerta=fondo/2-.95;
-      revestirPaneles(grupo,{x:x-ancho/2,z,largo:fondo,alto:h,rotacion:-Math.PI/2,
+      revestirPaneles(grupo,{torre,x:x-ancho/2,z,largo:fondo,alto:h,rotacion:-Math.PI/2,
         recorteInicio:.4,huecos:[[centroPuerta-.715,centroPuerta+.715,0,2.69]]});
       bloque(grupo,{x:x-ancho/2-.166,y:alturaCentro,z:z-fondo/2+.2,
         ancho:.025,alto:h,fondo:.4,color:'#40444c'})
@@ -175,11 +180,12 @@ export function crearPiso1(torre, objetosSeleccionables, capaEtiquetas){
       }
       bloque(grupo,{x:x-ancho/2,y:CONFIG.baseY+(h+2.45)/2,z:(inicioVano+finVano)/2,
         ancho:espesor,alto:h-2.45,fondo:1.25,material:paredMat});
-      revestirPaneles(grupo,{x:x-ancho/2,z,largo:fondo,alto:h,rotacion:-Math.PI/2,accesoJardin:true});
-      revestirPaneles(grupo,{x,z:z+fondo/2,largo:ancho,alto:h,rotacion:0});
+      revestirPaneles(grupo,{torre,x:x-ancho/2,z,largo:fondo,alto:h,rotacion:-Math.PI/2,accesoJardin:true});
+      revestirPaneles(grupo,{torre,x,z:z+fondo/2,largo:ancho,alto:h,rotacion:0});
     }
     if(ambiente.fachada)fachadaTorreA(grupo,{x:x+ancho/2,z,largo:fondo,
-      baseY:CONFIG.baseY,alto:h,tipo:ambiente.fachada});
+      baseY:CONFIG.baseY,alto:h,tipo:ambiente.fachada,
+      finPanel:medirPaneles(torre,x+ancho/2,z,Math.PI/2)});
     if(ambiente.id==='a-topico'){
       const extremoFachada=13*w/32,extremoFondo=x-ancho/2;
       const grosorLateralTopico=.8;
@@ -271,7 +277,27 @@ function detallesTopico(pared,centroPuerta){
   for(const x of [-.17,.17])bloque(camilla,{x,y:1.8,z:.14,ancho:.13,alto:.23,fondo:.12,color:'#d94a14'});
 }
 
-function revestirPaneles(padre,{x,z,largo,alto,rotacion,accesoJardin=false,huecos=[],recorteInicio=0}){
+// Mide el ancho sobre el muro ya compactado; los vanos siguen en coordenadas locales.
+function medirPaneles(torre,x,z,rotacion){
+  const ejeX=Math.cos(rotacion),ejeZ=-Math.sin(rotacion);
+  const posicion=t=>{
+    const px=torre.x+x+t*ejeX,pz=torre.z+z+t*ejeZ;
+    return Math.abs(ejeX)>.5?ajustarX(px)*ejeX:ajustarZ(pz,px)*CONFIG.escalaLongitudinalCampus*ejeZ;
+  };
+  return (inicio,limite,ancho)=>{
+    const destino=posicion(inicio)+ancho;
+    if(posicion(limite)<=destino)return limite;
+    let a=inicio,b=limite;
+    for(let i=0;i<28;i++){
+      const medio=(a+b)/2;
+      if(posicion(medio)<destino)a=medio;
+      else b=medio;
+    }
+    return (a+b)/2;
+  };
+}
+
+function revestirPaneles(padre,{torre,x,z,largo,alto,rotacion,accesoJardin=false,huecos=[],recorteInicio=0}){
   const paneles=new THREE.Group();
   paneles.name='Revestimiento exterior de paneles verticales de Torre A';
   paneles.position.set(x,CONFIG.baseY,z);paneles.rotation.y=rotacion;
@@ -301,9 +327,10 @@ function revestirPaneles(padre,{x,z,largo,alto,rotacion,accesoJardin=false,hueco
   const tonos=['#73747a','#55565e','#d7d6d0','#86868b','#65666d','#e2e0d8'];
   const materiales=tonos.map(color=>new THREE.MeshStandardMaterial({color,roughness:.83}));
   const anchos=[.82,.55,1.05,.68,.92,.48];
+  const finPanel=medirPaneles(torre,x,z,rotacion);
   let borde=-largo/2+recorteInicio,indice=0;
   while(borde<largo/2-.001){
-    const fin=Math.min(largo/2,borde+anchos[indice%anchos.length]);
+    const fin=finPanel(borde,largo/2,anchos[indice%anchos.length]);
     const corte=[1.3,2.1,3.2,1.85][indice%4];
     for(const [fila,[abajo,arriba]] of [[0,corte],[corte,alto]].entries()){
       // Recorta el revestimiento para mantener libres el vano y las ventanillas.
