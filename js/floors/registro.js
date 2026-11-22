@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { CONFIG } from '../config.js';
-import { crearPiso1 } from './piso1.js?v=pasillos-292';
+import { crearPiso1 } from './piso1.js?v=columnas-351';
 import { cubrirJardinesConTierraYPasto } from '../vegetacion.js?v=pasillos-292';
 import { aplicarPiedraPisos } from '../piedra-piso.js?v=pizarra-279';
 
@@ -17,7 +17,7 @@ export function crearTorres(escena,seleccionables,capaEtiquetas){
       // El jardín de elevadores se traslada entero durante la compactación.
       cubrirJardinesConTierraYPasto(edificio.getObjectByName('Área de elevadores'),z=>z);
     }
-    const bases=['Base del pasillo exterior de Torre A','Base del área abierta de Torre A','Base frontal de Torre B']
+    const bases=['Base del pasillo exterior de Torre A','Base del área abierta de Torre A','Base frontal de Torre B','Pavimento lateral oeste de Torre B']
       .map(nombre=>edificio.getObjectByName(nombre)).filter(Boolean);
     if(bases.length)aplicarPiedraPisos(bases,CONFIG.acabados.piso);
   }
