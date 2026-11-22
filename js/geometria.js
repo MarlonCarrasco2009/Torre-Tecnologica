@@ -118,7 +118,7 @@ export function paredConPuertas(padre,{x,z,largo,baseY,alto=3.2,rotacion=0}){
 // Muro con un único vano y hoja abierta, usado para conectar el jardín con la sala.
 export function paredConPuerta(padre,{x,z,largo,baseY,alto=3.2,rotacion=0,puertaCentro=0,
   colorMuro=paredNormal,colorPuerta='#af9276',colorMarco='#657582',interactiva=false,
-  anchoPuerta=1.35,altoPuerta=2.65}){
+  anchoPuerta=1.35,altoPuerta=2.65,manijaPalanca=false}){
   const pared=new THREE.Group();
   pared.name='Muro con puerta abierta hacia el jardín';
   pared.position.set(x,baseY,z);
@@ -144,7 +144,16 @@ export function paredConPuerta(padre,{x,z,largo,baseY,alto=3.2,rotacion=0,puerta
     abierta:false,anguloAbierto:Math.PI/2,colisionDinamica:true});
   pared.add(puerta);
   bloque(puerta,{x:anchoPuerta/2,y:altoPuerta/2,ancho:anchoPuerta-.1,alto:altoPuerta-.08,fondo:.1,material:hojaMat});
-  for(const cara of [-1,1]) bloque(puerta,{x:anchoPuerta-.22,y:1.2,z:cara*.12,ancho:.055,alto:.4,fondo:.065,material:tirador});
+  if(manijaPalanca){
+    const plata=new THREE.MeshStandardMaterial({color:'#d3d5d6',metalness:.55,roughness:.28});
+    for(const cara of [-1,1]){
+      const roseta=new THREE.Mesh(new THREE.CylinderGeometry(.075,.075,.07,20),plata);
+      roseta.rotation.x=Math.PI/2;roseta.position.set(anchoPuerta-.18,1.08,cara*.08);puerta.add(roseta);
+      bloque(puerta,{x:anchoPuerta-.25,y:1.08,z:cara*.13,ancho:.19,alto:.045,fondo:.055,material:plata});
+    }
+  }else{
+    for(const cara of [-1,1]) bloque(puerta,{x:anchoPuerta-.22,y:1.2,z:cara*.12,ancho:.055,alto:.4,fondo:.065,material:tirador});
+  }
   return pared;
 }
 export function etiqueta(padre,texto,x,y,z,tipo='zone',extra=''){
@@ -212,15 +221,15 @@ export function fachadaTorreA(padre,{x,z,largo,baseY,tipo,alto=4.4,
   }
   const elevacionMuroAdmision=.8;
   segmentos.push({izq:inicio,der:limiteDerecho,abajo:0,
-    arriba:alto+(admision?elevacionMuroAdmision:0),negro:admision});
+    arriba:alto+(admision?elevacionMuroAdmision:0),liso:admision});
   const fondo=new THREE.MeshStandardMaterial({color:'#45474e',roughness:.86});
-  const negro=new THREE.MeshStandardMaterial({color:'#08090b',roughness:.86});
+  const grisAdmision=new THREE.MeshStandardMaterial({color:'#40444c',roughness:.86});
   const tonos=['#73747a','#55565e','#d7d6d0','#86868b','#65666d','#e2e0d8'];
   const anchos=[.82,.55,1.05,.68,.92,.48];
   // Juntas y módulos verticales alternados, recortados alrededor de cada puerta.
   for(const s of segmentos){
     bloque(fachada,{x:(s.izq+s.der)/2,y:(s.abajo+s.arriba)/2,
-      ancho:s.der-s.izq,alto:s.arriba-s.abajo,fondo:.3,material:s.negro?negro:fondo});
+      ancho:s.der-s.izq,alto:s.arriba-s.abajo,fondo:.3,material:s.liso?grisAdmision:fondo});
   }
   let borde=limiteIzquierdo,indice=0;
   while(borde<limiteDerecho-.001){
@@ -228,7 +237,7 @@ export function fachadaTorreA(padre,{x,z,largo,baseY,tipo,alto=4.4,
     const corte=[1.3,2.1,3.2,1.85][indice%4];
     for(const [fila,[abajo,arriba]] of [[0,corte],[corte,alto]].entries()){
       for(const s of segmentos){
-        if(s.negro)continue;
+        if(s.liso)continue;
         const a=Math.max(borde,s.izq),b=Math.min(fin,s.der);
         const c=Math.max(abajo,s.abajo),d=Math.min(arriba,s.arriba);
         if(b-a>.025&&d-c>.025)bloque(fachada,{x:(a+b)/2,y:(c+d)/2,z:.166,
@@ -306,6 +315,6 @@ export function fachadaTorreA(padre,{x,z,largo,baseY,tipo,alto=4.4,
     ancho:finRemateClaro-limiteIzquierdo+(admision?0:.1),alto:.18,fondo:.9,color:'#d4d5d3'});
   if(admision)bloque(fachada,{x:(finPuertasAdmision+limiteDerecho)/2,
     y:alto+elevacionMuroAdmision+.09,z:.22,
-    ancho:limiteDerecho-finPuertasAdmision,alto:.18,fondo:.9,material:negro});
+    ancho:limiteDerecho-finPuertasAdmision,alto:.18,fondo:.9,material:grisAdmision});
   return fachada;
 }

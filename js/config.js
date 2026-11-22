@@ -21,7 +21,7 @@ export const CONFIG = {
   // Las medidas son unidades de maquetación, NO metros comprobados.
   torres: {
     C: { id: 'C', nombre: 'Torre C', x: -28, z: 1, ancho: 21, fondo: 69, color: '#34bb75', descripcion: 'Zona de cafetería, cocina y espacios vinculados al comedor.' },
-    B: { id: 'B', nombre: 'Torre B', x:   0, z: 0, ancho: 16.5, fondo: 74, color: '#367dec', descripcion: 'Biblioteca, aula y zona de elevadores.' },
+    B: { id: 'B', nombre: 'Torre B', x:   0, z: 0, ancho: 16.5, fondo: 74, color: '#367dec', descripcion: 'Biblioteca y zona de elevadores.' },
     A: { id: 'A', nombre: 'Torre A', x:  28, z: 1.5, ancho: 18.5, fondo: 70, color: '#e84f54', descripcion: 'Sala de Conferencias, Experiencia Estudiantil (atención al estudiante), Administración y tópico.' }
   }
 };
@@ -37,8 +37,7 @@ export const AMBIENTES = {
   ],
   B: [
     { id:'b-elevadores', nombre:'Elevadores', tipo:'Circulación vertical', x:0, z:18, ancho:13, fondo:9, recorteFrontal:2.2, color:'#d5e4f2', descripcion:'Cuatro elevadores con puertas animadas y acceso a los pisos 1 al 11; vestíbulo con vidrio de marco negro y jardín lateral en L con borde plomo.' },
-    { id:'b-biblioteca', nombre:'Biblioteca', tipo:'Estudio', x:0, z:-1.5, ancho:13, fondo:22.5, color:'#d6e3fa', paredes:['este','oeste'], descripcion:'Biblioteca central indicada en el croquis.' },
-    { id:'b-aula', nombre:'Aula', tipo:'Educación', x:0, z:-20, ancho:13, fondo:10, color:'#dce9f9', paredes:['norte','este','oeste'], descripcion:'Aula ubicada en el extremo posterior de la Torre B.' }
+    { id:'b-biblioteca', nombre:'Biblioteca', tipo:'Estudio', x:0, z:-1.5, ancho:13, fondo:22.5, color:'#d6e3fa', paredes:[], descripcion:'Biblioteca central indicada en el croquis.' },
   ],
   A: [
     { id:'a-conferencias', nombre:'Sala de Conferencias', tipo:'Eventos', x:0, z:4.1, ancho:13, fondo:35.6, color:'#f2d9d3', paredes:['norte','sur','oeste'], fachada:'conferencias', descripcion:'Fachada de paneles grises y claros. Cinco puertas hacia el patio: dos parejas y una puerta individual, según el croquis actualizado.' },
@@ -62,7 +61,7 @@ export function distribucionInterior(torre){
   const ajusteFrontal=6;
   const inicio=referencia.z+(cocina.z+cocina.fondo/2)*referencia.fondo/54+ajusteFrontal;
   const ambientes=AMBIENTES[torre.id];
-  const posterior=Math.min(...ambientes.map(a=>a.z-a.fondo/2));
+  const posterior=-25; // Extremo posterior del trazado original de Torre B.
   const frontal=Math.max(...ambientes.map(a=>a.z+a.fondo/2));
   const limitePosterior=posterior*factorOriginal;
   // Conserva el extremo posterior y reparte los ambientes en el tramo restante.

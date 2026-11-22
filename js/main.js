@@ -2,14 +2,15 @@ import * as THREE from 'three';
 import { ajustarX,ajustarZ,compactarFranja } from './franja-campus.js?v=borde-295';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { CSS2DRenderer } from 'three/addons/renderers/CSS2DRenderer.js';
-import { CONFIG } from './config.js?v=jardin-243';
+import { CONFIG } from './config.js?v=torre-b-341';
 import { ajustarPizarraFinal } from './piedra-piso.js?v=pizarra-279';
-import { crearTorres } from './floors/registro.js?v=pasillos-292';
-import { crearExteriores } from './exteriores.js?v=borde-295';
+import { crearTorres } from './floors/registro.js?v=columnas-351';
+import { crearExteriores } from './exteriores.js?v=piso-353';
 import { crearRecorrido } from './recorrido.js?v=pasillos-292';
 import { crearPuertasFachada } from './puertas.js?v=rejas-abribles-174';
-import { crearServicioElevadores } from './elevadores.js?v=camara-cabina-293';
+import { crearServicioElevadores } from './elevadores.js?v=jardin-350';
 import { crearBebederos } from './bebederos.js?v=columnas-bebederos-210';
+import { crearExpendedoras } from './expendedoras.js?v=358';
 
 const visor=document.querySelector('#visor');
 const error=document.querySelector('#error');
@@ -66,6 +67,7 @@ const capaEtiquetas=new THREE.Group();
 capaEtiquetas.name='Etiquetas';campus.add(capaEtiquetas);
 const {suelo,extras,perimetro}=crearExteriores(campus);
 const bebederos=crearBebederos(extras);
+crearExpendedoras(extras);
 const torres=crearTorres(campus,objetosSeleccionables,capaEtiquetas);
 compactarFranja(campus);
 // Conserva la posición del cerco posterior al estrechar desde el frente (+Z).

@@ -1,9 +1,11 @@
 import * as THREE from 'three';
 import {CONFIG} from './config.js?v=video-1511-vegetacion';
-import {bloque,placa,paredVidrio} from './geometria.js?v=video-1511-vegetacion';
+import {bloque,placa} from './geometria.js?v=video-1511-vegetacion';
 import {jardinContorno} from './exteriores.js';
 
 export const PISOS_ELEVADOR=11;
+export const ENSANCHE_POR_FILA=1.4;
+const colorPared='#40444c';
 const base=CONFIG.baseY+.085;
 export const cotaPiso=piso=>base+(piso-1)*CONFIG.altoPiso;
 
@@ -15,24 +17,46 @@ function vidrioFijo(grupo,x,z,ancho,alto,rotacion=0,colorMarco='#121820'){
   for(const y of [.04,alto])bloque(marco,{y,ancho,alto:.085,fondo:.12,color:colorMarco});
 }
 
-function entradaDoble(grupo,{x,z,largo,alto}){
+function entradaDoble(grupo,{x,z,largo,alto,fachada=false}){
   const paredDoble=new THREE.Group();paredDoble.name='Entrada de vidrio con dos hojas hacia dentro';
-  paredDoble.position.set(x,0,z);paredDoble.rotation.y=Math.PI/2;grupo.add(paredDoble);
-  const centro=-.9,anchoVano=2.6,altoPuerta=2.65,hojaAncho=anchoVano/2;
+  paredDoble.position.set(x,0,z);paredDoble.rotation.y=fachada?-Math.PI/2:Math.PI/2;grupo.add(paredDoble);
+  const centro=fachada?0:-.9,anchoVano=fachada?2.9:2.6,altoPuerta=fachada?2.95:2.65,hojaAncho=anchoVano/2;
   const izquierda=centro-anchoVano/2,derecha=centro+anchoVano/2;
   for(const [inicio,fin] of [[-largo/2,izquierda],[derecha,largo/2]]){
-    vidrioFijo(paredDoble,(inicio+fin)/2,0,fin-inicio,alto,0,'#808c89');
+    if(!fachada){
+      vidrioFijo(paredDoble,(inicio+fin)/2,0,fin-inicio,alto,0,'#808c89');
+      continue;
+    }
+    const lado=inicio<izquierda?-1:1,lateral=.42;
+    const ejeVidrio=centro+lado*(hojaAncho+lateral/2);
+    vidrioFijo(paredDoble,ejeVidrio,0,lateral,alto);
+    bloque(paredDoble,{x:ejeVidrio,y:1.38,ancho:lateral-.08,alto:.42,fondo:.07,color:'#b6c6c5'});
+    const anchoMuro=fin-inicio-lateral,ejeMuro=ejeVidrio+lado*(lateral+anchoMuro)/2;
+    bloque(paredDoble,{x:ejeMuro,y:alto/2,ancho:anchoMuro,alto,fondo:.24,color:colorPared});
+    for(const y of [.76,2.72])bloque(paredDoble,{x:ejeMuro,y,z:.122,ancho:anchoMuro,alto:.014,fondo:.01,color:'#515154'});
+    bloque(paredDoble,{x:centro+lado*hojaAncho,y:altoPuerta/2,z:.07,ancho:.09,alto:altoPuerta,fondo:.16,color:'#bdbfba'});
   }
   const superior=new THREE.Group();superior.position.y=altoPuerta;paredDoble.add(superior);
   vidrioFijo(superior,centro,0,anchoVano,alto-altoPuerta,0,'#808c89');
+  if(fachada){
+    bloque(paredDoble,{y:altoPuerta,z:.07,ancho:anchoVano+.09,alto:.1,fondo:.16,color:'#bdbfba'});
+    rotulo(paredDoble,'SALIDA',centro,altoPuerta+.25,.09,0,'#104f36','#a9ffbd');
+    const gabineteX=derecha+1.48;
+    bloque(paredDoble,{x:gabineteX,y:1.22,z:.23,ancho:.55,alto:.74,fondo:.24,color:'#ad2330'}).name='Gabinete contra incendios';
+    bloque(paredDoble,{x:gabineteX,y:1.22,z:.357,ancho:.38,alto:.56,fondo:.02,color:'#602d33'});
+    bloque(paredDoble,{x:gabineteX,y:1.21,z:.376,ancho:.16,alto:.36,fondo:.025,color:'#d3443f'});
+    bloque(paredDoble,{x:gabineteX,y:2.08,z:.13,ancho:.22,alto:.28,fondo:.02,color:'#eee8dc'});
+    bloque(paredDoble,{x:gabineteX,y:2.08,z:.145,ancho:.08,alto:.15,fondo:.012,color:'#b73436'});
+  }
   const vidrio=new THREE.MeshStandardMaterial({color:'#8acbdf',transparent:true,opacity:.42,
     roughness:.16,metalness:.08,depthWrite:false});
   for(const lado of [-1,1]){
     const hoja=new THREE.Group(),sentido=-lado;
     hoja.name=`Hoja ${lado<0?'izquierda':'derecha'} de entrada doble`;
     hoja.position.x=centro+lado*hojaAncho;
-    Object.assign(hoja.userData,{puerta:true,puertaInteractiva:true,abierta:false,
+    Object.assign(hoja.userData,{puerta:true,puertaInteractiva:true,abierta:fachada,
       anguloAbierto:sentido*Math.PI/2,colisionDinamica:true,grupoPuertas:paredDoble.uuid});
+    if(fachada)hoja.rotation.y=hoja.userData.anguloAbierto;
     paredDoble.add(hoja);
     bloque(hoja,{x:sentido*hojaAncho/2,y:altoPuerta/2,ancho:hojaAncho-.08,
       alto:altoPuerta-.08,fondo:.065,material:vidrio});
@@ -45,10 +69,10 @@ function entradaDoble(grupo,{x,z,largo,alto}){
   }
 }
 
-function rotulo(grupo,texto,x,y,z,rotacion=0){
+function rotulo(grupo,texto,x,y,z,rotacion=0,fondo='#101c28',color='#a6f2ff'){
   const canvas=document.createElement('canvas');canvas.width=256;canvas.height=96;
-  const ctx=canvas.getContext('2d');ctx.fillStyle='#101c28';ctx.fillRect(0,0,256,96);
-  ctx.fillStyle='#a6f2ff';ctx.font='bold 40px Arial';ctx.textAlign='center';ctx.fillText(texto,128,64);
+  const ctx=canvas.getContext('2d');ctx.fillStyle=fondo;ctx.fillRect(0,0,256,96);
+  ctx.fillStyle=color;ctx.font='bold 40px Arial';ctx.textAlign='center';ctx.fillText(texto,128,64);
   const mapa=new THREE.CanvasTexture(canvas);mapa.colorSpace=THREE.SRGBColorSpace;
   const m=new THREE.Mesh(new THREE.PlaneGeometry(.95,.36),new THREE.MeshBasicMaterial({map:mapa}));
   m.position.set(x,y,z);m.rotation.y=rotacion;m.userData.sinColision=true;grupo.add(m);
@@ -61,6 +85,8 @@ export const DISTRIBUCION_ELEVADORES={derecha:2,izquierda:4};
 export function crearZonaElevadores(padre,{x,z,ancho,fondo}){
   const grupo=new THREE.Group();grupo.name='Área de elevadores';grupo.position.set(x,0,z);padre.add(grupo);
   const a=ancho/2,b=fondo/2,alto=4.1;
+  const bordeJardin=b+ENSANCHE_POR_FILA;
+  const fondoTotal=fondo+2*ENSANCHE_POR_FILA;
   const acero=new THREE.MeshStandardMaterial({color:'#c3c6bd',metalness:.28,roughness:.34});
   const lienzo=document.createElement('canvas');lienzo.width=256;lienzo.height=512;
   const pincel=lienzo.getContext('2d');
@@ -70,7 +96,7 @@ export function crearZonaElevadores(padre,{x,z,ancho,fondo}){
   }
   const cepillado=new THREE.CanvasTexture(lienzo);cepillado.colorSpace=THREE.SRGBColorSpace;
   const aceroPuertas=new THREE.MeshStandardMaterial({map:cepillado,metalness:.25,roughness:.34});
-  const pared='#77716b';
+
   const cabinas=[];
   for(const [signo,cantidad] of [[-1,DISTRIBUCION_ELEVADORES.derecha],[1,DISTRIBUCION_ELEVADORES.izquierda]]){
     for(let i=0;i<cantidad;i++){
@@ -79,11 +105,12 @@ export function crearZonaElevadores(padre,{x,z,ancho,fondo}){
       const cx=-a+(i+.5)*ancho/cantidad+desplazamientoX,cz=signo*(b-1.25),frente=-signo;
       const cabina=new THREE.Group();cabina.name=`Cabina elevador ${cabinas.length+1}`;
       cabina.position.set(cx,base,cz);grupo.add(cabina);
-      bloque(cabina,{y:-.07,ancho:2.65,alto:.14,fondo:2.2,color:'#b6b3a7'});
-      for(const lado of [-1,1])bloque(cabina,{x:lado*1.275,y:1.42,ancho:.1,alto:2.84,fondo:2.2,material:acero});
-      bloque(cabina,{z:-frente*1.05,y:1.42,ancho:2.65,alto:2.84,fondo:.1,material:acero});
-      const techo=bloque(cabina,{y:2.9,ancho:2.65,alto:.12,fondo:2.2,color:'#d9dad3'});
-      bloque(cabina,{z:-frente*.98,y:1.05,ancho:2.25,alto:.06,fondo:.08,material:acero});
+      const desplazamiento=signo*ENSANCHE_POR_FILA;
+      bloque(cabina,{z:desplazamiento/2,y:-.07,ancho:2.65,alto:.14,fondo:2.2+ENSANCHE_POR_FILA,color:'#b6b3a7'});
+      for(const lado of [-1,1])bloque(cabina,{x:lado*1.275,z:desplazamiento/2,y:1.42,ancho:.1,alto:2.84,fondo:2.2+ENSANCHE_POR_FILA,material:acero});
+      bloque(cabina,{z:desplazamiento-frente*1.05,y:1.42,ancho:2.65,alto:2.84,fondo:.1,material:acero});
+      const techo=bloque(cabina,{z:desplazamiento/2,y:2.9,ancho:2.65,alto:.12,fondo:2.2+ENSANCHE_POR_FILA,color:'#d9dad3'});
+      bloque(cabina,{z:desplazamiento-frente*.98,y:1.05,ancho:2.25,alto:.06,fondo:.08,material:acero});
       cabinas.push({id:cabinas.length+1,x:cx,z:cz,frente,grupo:cabina,techo,piso:1,lado:signo<0?'derecha':'izquierda'});
     }
   }
@@ -91,12 +118,12 @@ export function crearZonaElevadores(padre,{x,z,ancho,fondo}){
   function crearNivel(piso){
     if(niveles.has(piso))return niveles.get(piso);
     const g=new THREE.Group();g.name=`Vestíbulo de elevadores - Piso ${piso}`;g.position.y=cotaPiso(piso);grupo.add(g);
-    const suelo=placa(g,{y:-.03,ancho,fondo,color:'#8a8077'});
-    if(piso>1)bloque(g,{y:-.19,ancho,alto:.32,fondo,color:'#aebcc7'});
+    const suelo=placa(g,{y:-.03,ancho,fondo:fondoTotal,color:'#8a8077'});
+    if(piso>1)bloque(g,{y:-.19,ancho,alto:.32,fondo:fondoTotal,color:'#aebcc7'});
     const franja=bloque(g,{y:.002,ancho,alto:.008,fondo:1.6,color:'#d8d0b4'});franja.name='Franja central clara del vestíbulo';franja.userData.sinColision=true;
     for(let px=-a;px<a;px+=1.1){const junta=bloque(g,{x:px,y:.009,ancho:.015,alto:.003,fondo:1.6,color:'#aaa697'});junta.userData.sinColision=true;}
     for(const signo of [-1,1]){
-      bloque(g,{z:signo*b,y:alto/2,ancho,alto,fondo:.22,color:pared});
+      bloque(g,{z:signo*bordeJardin,y:alto/2,ancho,alto,fondo:.22,color:colorPared});
       const fila=cabinas.filter(c=>c.frente===-signo);
       // Paños continuos entre vanos, también en el lado con solo dos ascensores.
       // Abre los extremos marcados del frente en la planta baja.
@@ -104,46 +131,45 @@ export function crearZonaElevadores(padre,{x,z,ancho,fondo}){
       let inicio=extremosAbiertos?cabinas[0].x-3.3:-a;
       for(const c of fila){
         const fin=c.x-.88;
-        if(fin>inicio)bloque(g,{x:(inicio+fin)/2,z:c.z+c.frente*1.12,y:alto/2,ancho:fin-inicio,alto,fondo:.25,color:pared});
-        bloque(g,{x:c.x,z:c.z+c.frente*1.12,y:(2.72+alto)/2,ancho:1.76,alto:alto-2.72,fondo:.25,color:pared});
+        if(fin>inicio)bloque(g,{x:(inicio+fin)/2,z:c.z+c.frente*1.12,y:alto/2,ancho:fin-inicio,alto,fondo:.25,color:colorPared});
+        bloque(g,{x:c.x,z:c.z+c.frente*1.12,y:(2.72+alto)/2,ancho:1.76,alto:alto-2.72,fondo:.25,color:colorPared});
         inicio=c.x+.88;
       }
       const final=extremosAbiertos?cabinas[1].x+2.2:a;
-      if(inicio<final)bloque(g,{x:(inicio+final)/2,z:signo*(b-2.37),y:alto/2,ancho:final-inicio,alto,fondo:.25,color:pared});
+      if(inicio<final)bloque(g,{x:(inicio+final)/2,z:signo*(b-2.37),y:alto/2,ancho:final-inicio,alto,fondo:.25,color:colorPared});
     }
     if(piso===1){
       // Divisiones y retornos señalados a ambos lados de la fila de dos cabinas.
       const izquierda=cabinas[0].x-2.3,derecha=cabinas[1].x+2.2;
       const frente=-b+2.37;
       const tramos=[
-        ['División izquierda',izquierda,-b,izquierda,frente],
+        ['División izquierda',izquierda,-bordeJardin,izquierda,frente],
         ['Retorno izquierdo',izquierda-1,frente-.65,izquierda+.9,frente-.65],
         ['Cierre corto izquierdo',izquierda-1,frente-.65,izquierda-1,frente],
-        ['División derecha',derecha,-b,derecha,frente],
-        ['Unión posterior al vidrio',a,-b,a+1.5,-b],
-        ['Cierre junto al jardín y al vidrio',a,b-2.37,a,b],
-        ['División de cabina junto al jardín',a-ancho/4,b-2.37,a-ancho/4,b]
+        ['División derecha',derecha,-bordeJardin,derecha,frente],
+        ['Unión posterior al vidrio',a,-bordeJardin,a+1.5,-bordeJardin],
+        ['Cierre junto al jardín y al vidrio',a,b-2.37,a,bordeJardin],
+        ['División de cabina junto al jardín',a-ancho/4,b-2.37,a-ancho/4,bordeJardin]
       ];
       for(const [nombre,x1,z1,x2,z2] of tramos){
         bloque(g,{x:(x1+x2)/2,z:(z1+z2)/2,y:alto/2,
           ancho:Math.abs(x2-x1)+.22,fondo:Math.abs(z2-z1)+.22,
-          alto,color:pared}).name=`Muro de elevadores · ${nombre}`;
+          alto,color:colorPared}).name=`Muro de elevadores · ${nombre}`;
       }
       for(const lado of [-1,1]){
         const desplazamientoExterior=lado===1?1.5:0;
         // El extremo +Z termina en el nuevo panel transversal.
         const recorte=lado===1?2.37:0;
         if(lado===1){
-          entradaDoble(g,{x:a+desplazamientoExterior,z:-recorte/2,largo:fondo-recorte,alto});
+          entradaDoble(g,{x:a+desplazamientoExterior,z:-(recorte+ENSANCHE_POR_FILA)/2,largo:fondo+ENSANCHE_POR_FILA-recorte,alto});
           continue;
         }
-        paredVidrio(g,{x:lado*a+desplazamientoExterior,z:-recorte/2,largo:fondo-recorte,
-          baseY:0,alto,rotacion:lado*Math.PI/2,colorMarco:'#808c89'});
+        entradaDoble(g,{x:-a,z:0,largo:fondoTotal,alto,fachada:true});
       }
       // Cierra el tramo marcado entre la fachada de cabinas y el vidrio desplazado.
       vidrioFijo(g,a+.75,b-2.37,1.5,alto,0,'#808c89');
     }else{
-      for(const lado of [-1,1])vidrioFijo(g,lado*a,0,fondo,alto,Math.PI/2);
+      for(const lado of [-1,1])vidrioFijo(g,lado*a,0,fondoTotal,alto,Math.PI/2);
     }
     const cubierta=new THREE.Group();cubierta.name='Techo oscuro del vestíbulo';cubierta.visible=false;g.add(cubierta);
     bloque(cubierta,{y:alto,ancho,alto:.1,fondo:Math.max(1,fondo-4.4),color:'#242b2a'});
@@ -176,8 +202,9 @@ export function crearZonaElevadores(padre,{x,z,ancho,fondo}){
   const plantaBaja=crearNivel(1);
   // Contorno ajustado: franja estrecha y retorno hasta el frente del vidrio.
   const limiteJardin=2.7;
-  jardinContorno(grupo,[[-a,b+.16],[a,b+.16],[a,b-2.37],
-    [a+1.5,b-2.37],[a+1.5,b+limiteJardin],[-a,b+limiteJardin]],base+.18,.35,'#08090b',[0,1]);
+  const extremoIzquierdoJardin=-a+.95;
+  jardinContorno(grupo,[[extremoIzquierdoJardin,bordeJardin+.16],[a,bordeJardin+.16],[a,b-2.37],
+    [a+1.5,b-2.37],[a+1.5,bordeJardin+limiteJardin],[extremoIzquierdoJardin,bordeJardin+limiteJardin]],base+.18,.35,'#08090b',[0,1]);
   const datos={grupo,ancho,fondo,cabinas,niveles,crearNivel,plantaBaja};
   grupo.userData.zonaElevadores=datos;
   return datos;
