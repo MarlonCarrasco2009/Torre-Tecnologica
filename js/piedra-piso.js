@@ -53,7 +53,8 @@ export function ajustarPizarraFinal(campus){
   const punto=new THREE.Vector3(),normal=new THREE.Vector3();
   const pisos=[],materiales=new Map();
   campus.traverse(obj=>{
-    if(!obj.material?.userData?.pizarra)return;
+    const acabado=obj.material?.userData;
+    if(!acabado?.pizarra&&!acabado?.ceramica)return;
     const geometria=obj.geometry.clone(),pos=geometria.attributes.position,norm=geometria.attributes.normal;
     const uv=new Float32Array(pos.count*2),matNormal=new THREE.Matrix3().getNormalMatrix(obj.matrixWorld);
     for(let i=0;i<pos.count;i++){
@@ -65,6 +66,7 @@ export function ajustarPizarraFinal(campus){
     }
     geometria.setAttribute('uv',new THREE.BufferAttribute(uv,2));
     obj.geometry=geometria;
+    if(acabado.ceramica)return;
     // Da prioridad estable a los acabados que comparten parte de su cara superior.
     const caja=new THREE.Box3().setFromObject(obj,true);
     const ocupadas=new Set();

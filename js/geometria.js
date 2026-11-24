@@ -118,7 +118,7 @@ export function paredConPuertas(padre,{x,z,largo,baseY,alto=3.2,rotacion=0}){
 // Muro con un único vano y hoja abierta, usado para conectar el jardín con la sala.
 export function paredConPuerta(padre,{x,z,largo,baseY,alto=3.2,rotacion=0,puertaCentro=0,
   colorMuro=paredNormal,colorPuerta='#af9276',colorMarco='#657582',interactiva=false,
-  anchoPuerta=1.35,altoPuerta=2.65,manijaPalanca=false}){
+  anchoPuerta=1.35,altoPuerta=2.65,manijaPalanca=false,colorTirador='#657582',ventanasIzquierda=[],inicioMuro=-largo/2}){
   const pared=new THREE.Group();
   pared.name='Muro con puerta abierta hacia el jardín';
   pared.position.set(x,baseY,z);
@@ -126,12 +126,21 @@ export function paredConPuerta(padre,{x,z,largo,baseY,alto=3.2,rotacion=0,puerta
   padre.add(pared);
   const muro=new THREE.MeshStandardMaterial({color:colorMuro,roughness:.83});
   const marco=new THREE.MeshStandardMaterial({color:colorMarco,roughness:.5});
-  const tirador=new THREE.MeshStandardMaterial({color:'#657582',roughness:.5});
+  const tirador=new THREE.MeshStandardMaterial({color:colorTirador,roughness:.5});
   const hojaMat=new THREE.MeshStandardMaterial({color:colorPuerta,roughness:.65});
   const espesor=.3;
-  const izquierda=-largo/2,derecha=largo/2;
+  const izquierda=inicioMuro,derecha=largo/2;
   const vanoIzq=puertaCentro-anchoPuerta/2,vanoDer=puertaCentro+anchoPuerta/2;
-  if(vanoIzq-izquierda>0) bloque(pared,{x:(izquierda+vanoIzq)/2,y:alto/2,ancho:vanoIzq-izquierda,alto,fondo:espesor,material:muro});
+  const tramos=[];
+  let inicio=izquierda;
+  for(const [a,b,base,tope] of ventanasIzquierda){
+    tramos.push([inicio,a,0,alto],[a,b,0,base],[a,b,tope,alto]);
+    inicio=b;
+  }
+  tramos.push([inicio,vanoIzq,0,alto]);
+  for(const [a,b,base,tope] of tramos){
+    if(b>a)bloque(pared,{x:(a+b)/2,y:(base+tope)/2,ancho:b-a,alto:tope-base,fondo:espesor,material:muro});
+  }
   if(derecha-vanoDer>0) bloque(pared,{x:(vanoDer+derecha)/2,y:alto/2,ancho:derecha-vanoDer,alto,fondo:espesor,material:muro});
   bloque(pared,{x:puertaCentro,y:(alto+altoPuerta)/2,ancho:anchoPuerta,alto:alto-altoPuerta,fondo:espesor,material:muro});
   for(const borde of [vanoIzq,vanoDer]) bloque(pared,{x:borde,y:altoPuerta/2,ancho:.08,alto:altoPuerta,fondo:.34,material:marco});

@@ -1,13 +1,17 @@
 import * as THREE from 'three';
-import {CONFIG} from './config.js?v=video-1511-vegetacion';
-import {bloque,placa} from './geometria.js?v=video-1511-vegetacion';
+import {CONFIG} from './config.js?v=cota-b-418';
+import {bloque,placa,paredConPuerta} from './geometria.js?v=puerta-azul-423';
 import {jardinContorno} from './exteriores.js';
 
 export const PISOS_ELEVADOR=11;
 export const ENSANCHE_POR_FILA=1.4;
 const colorPared='#40444c';
+const anchoCabina=2.65;
+const acabadoPuertaAzul={anchoPuerta:.98,altoPuerta:2.2,colorMuro:'#f1efe9',
+  colorMarco:'#102748',colorPuerta:'#152f59',colorTirador:'#c5cbd0',interactiva:true};
+const espesorDescanso=.26;
 const base=CONFIG.baseY+.085;
-export const cotaPiso=piso=>base+(piso-1)*CONFIG.altoPiso;
+export const cotaPiso=piso=>base+(piso===2?CONFIG.alturaSegundoPisoB:(piso-1)*CONFIG.altoPiso);
 
 function vidrioFijo(grupo,x,z,ancho,alto,rotacion=0,colorMarco='#121820'){
   const marco=new THREE.Group();marco.position.set(x,0,z);marco.rotation.y=rotacion;grupo.add(marco);
@@ -15,6 +19,7 @@ function vidrioFijo(grupo,x,z,ancho,alto,rotacion=0,colorMarco='#121820'){
   bloque(marco,{y:alto/2,ancho,alto,fondo:.065,material:vidrio,sombra:false});
   for(const lado of [-1,1])bloque(marco,{x:lado*ancho/2,y:alto/2,ancho:.085,alto,fondo:.12,color:colorMarco});
   for(const y of [.04,alto])bloque(marco,{y,ancho,alto:.085,fondo:.12,color:colorMarco});
+  return marco;
 }
 
 function entradaDoble(grupo,{x,z,largo,alto,fachada=false}){
@@ -82,6 +87,102 @@ function rotulo(grupo,texto,x,y,z,rotacion=0,fondo='#101c28',color='#a6f2ff'){
 // Mirando desde Torre A hacia Torre C: cuatro puertas a la izquierda (+Z)
 // y dos a la derecha (-Z), según el avance del compañero.
 export const DISTRIBUCION_ELEVADORES={derecha:2,izquierda:4};
+
+function pisoVestibuloSegundo(grupo,ancho,fondo){
+  const loseta=document.createElement('canvas');loseta.width=loseta.height=256;
+  const ctx=loseta.getContext('2d');
+  ctx.fillStyle='#e8e5df';ctx.fillRect(0,0,256,256);
+  ctx.fillStyle='#b4b0aa';ctx.fillRect(0,0,2,256);ctx.fillRect(0,0,256,2);
+  const textura=new THREE.CanvasTexture(loseta);
+  textura.wrapS=textura.wrapT=THREE.RepeatWrapping;
+  const banda=.82,centro=fondo-2*banda;
+  textura.repeat.set(ancho/.85,centro/.85);textura.colorSpace=THREE.SRGBColorSpace;
+  const material=new THREE.MeshStandardMaterial({map:textura,roughness:.66});
+  const suelo=bloque(grupo,{y:-.15,ancho,alto:.3,fondo:centro,material});
+  suelo.name='Losetas claras del vestíbulo del segundo piso';
+  for(const lado of [-1,1]){
+    bloque(grupo,{z:lado*(centro+banda)/2,y:-.15,ancho,alto:.3,fondo:banda,color:'#353238'})
+      .name='Franja oscura frente a las puertas';
+  }
+  return suelo;
+}
+
+function murosDeHuecosSegundo(grupo,fila,semiancho,zPosterior,baseMuro,alto){
+  const {z,frente}=fila[0];
+  // Los macizos unen la cara posterior de la fachada con la cara interna del muro de fondo.
+  const inicioZ=z+frente*(1.12-.125),finZ=zPosterior+frente*.11;
+  const semihueco=anchoCabina/2+.16;
+  const hormigon=new THREE.MeshStandardMaterial({color:'#68727a',roughness:.9});
+  const remate=new THREE.MeshStandardMaterial({color:'#a5adb0',roughness:.73});
+  const espesorRemate=.16;
+  // Esta viga enlaza el muro inferior con la losa del pasillo, por delante de las cabinas.
+  const bajoLosa=-.3;
+  let inicioViga=-semiancho;
+  function macizo(izquierda,derecha,desdeZ=inicioZ,hastaZ=finZ,base=baseMuro){
+    if(derecha<=izquierda)return;
+    const centroZ=(desdeZ+hastaZ)/2,profundidad=Math.abs(hastaZ-desdeZ);
+    const x=(izquierda+derecha)/2,ancho=derecha-izquierda;
+    const bajoRemate=alto-espesorRemate;
+    bloque(grupo,{x,z:centroZ,y:(base+bajoRemate)/2,ancho,alto:bajoRemate-base,
+      fondo:profundidad,material:hormigon});
+    // El remate sobresale solo hacia los huecos, dentro de la holgura lateral.
+    const bordeIzq=izquierda===-semiancho?izquierda:izquierda-.04;
+    const bordeDer=derecha===semiancho?derecha:derecha+.04;
+    bloque(grupo,{x:(bordeIzq+bordeDer)/2,z:centroZ,y:alto-espesorRemate/2,
+      ancho:bordeDer-bordeIzq,alto:espesorRemate,fondo:profundidad,material:remate});
+  }
+  let izquierda=-semiancho,inicioMuroPosterior=-semiancho;
+  for(const cabina of fila){
+    const derecha=cabina.x-semihueco;
+    if(frente>0&&cabina===fila[0]){
+      // Recorte escalonado del bloque junto a la puerta azul.
+      const ancho=derecha-izquierda;
+      const quiebre=inicioZ+(finZ-inicioZ)*.38;
+      const bordeFrontal=izquierda+ancho*.40;
+      inicioViga=bordeFrontal;
+      macizo(bordeFrontal,derecha,inicioZ,quiebre,-espesorDescanso);
+      inicioMuroPosterior=izquierda+ancho*.68;
+      macizo(inicioMuroPosterior,derecha,quiebre,finZ,-espesorDescanso);
+      // Prolongación del descanso a ras del vestíbulo, siguiendo el recorte en L.
+      const piedra=new THREE.MeshStandardMaterial({color:'#817c70',roughness:.94});
+      for(const [borde,desde,hasta] of [[inicioMuroPosterior,zPosterior,quiebre],
+        [bordeFrontal,quiebre,z+frente*1.12]]){
+        bloque(grupo,{x:(izquierda+borde)/2,y:-espesorDescanso/2,z:(desde+hasta)/2,
+          ancho:borde-izquierda,alto:espesorDescanso,fondo:Math.abs(hasta-desde),material:piedra})
+          .name='Prolongación del descanso junto a los elevadores';
+      }
+      const finLateral=z+frente*1.12;
+      bloque(grupo,{x:izquierda,y:alto/2,z:(zPosterior+finLateral)/2,
+        ancho:.16,alto,fondo:Math.abs(finLateral-zPosterior),color:'#ffffff'})
+        .name='Pared blanca lateral del descanso en L';
+    }else macizo(izquierda,derecha);
+    izquierda=cabina.x+semihueco;
+  }
+  // En el extremo opuesto de la fila de dos, el descanso llega hasta el corte recto.
+  const finMuro=frente>0?izquierda+(semiancho-izquierda)*.24:semiancho;
+  macizo(izquierda,finMuro);
+  if(finMuro<semiancho){
+    // Encaje milimétrico para que el raycast de pisada también encuentre suelo en la junta.
+    const caraVestibulo=z+frente*1.121;
+    bloque(grupo,{x:(finMuro+semiancho)/2,y:-espesorDescanso/2,z:(zPosterior+caraVestibulo)/2,
+      ancho:semiancho-finMuro,alto:espesorDescanso,fondo:Math.abs(caraVestibulo-zPosterior),
+      material:new THREE.MeshStandardMaterial({color:'#817c70',roughness:.94})})
+      .name='Descanso junto al último elevador';
+    // Continúa el cierre transversal de la escalera hasta la esquina del vestíbulo.
+    const finPared=z+frente*1.12;
+    bloque(grupo,{x:semiancho,y:alto/2,z:(zPosterior+finPared)/2,
+      ancho:.16,alto,fondo:Math.abs(finPared-zPosterior),color:'#ffffff'})
+      .name='Prolongación blanca del cierre del descanso';
+    const finCierre=semiancho-.08;
+    const acceso=paredConPuerta(grupo,{x:(finMuro+finCierre)/2,z:finPared,baseY:0,
+      largo:finCierre-finMuro,alto,puertaCentro:-.1,...acabadoPuertaAzul});
+    acceso.name='Acceso azul del vestíbulo al descanso';
+  }
+  bloque(grupo,{x:(inicioViga+finMuro)/2,z:z+frente*1.22,y:(baseMuro+bajoLosa)/2,
+    ancho:finMuro-inicioViga,alto:bajoLosa-baseMuro,fondo:.2,material:hormigon});
+  return [inicioMuroPosterior,finMuro];
+}
+
 export function crearZonaElevadores(padre,{x,z,ancho,fondo}){
   const grupo=new THREE.Group();grupo.name='Área de elevadores';grupo.position.set(x,0,z);padre.add(grupo);
   const a=ancho/2,b=fondo/2,alto=4.1;
@@ -106,10 +207,10 @@ export function crearZonaElevadores(padre,{x,z,ancho,fondo}){
       const cabina=new THREE.Group();cabina.name=`Cabina elevador ${cabinas.length+1}`;
       cabina.position.set(cx,base,cz);grupo.add(cabina);
       const desplazamiento=signo*ENSANCHE_POR_FILA;
-      bloque(cabina,{z:desplazamiento/2,y:-.07,ancho:2.65,alto:.14,fondo:2.2+ENSANCHE_POR_FILA,color:'#b6b3a7'});
-      for(const lado of [-1,1])bloque(cabina,{x:lado*1.275,z:desplazamiento/2,y:1.42,ancho:.1,alto:2.84,fondo:2.2+ENSANCHE_POR_FILA,material:acero});
-      bloque(cabina,{z:desplazamiento-frente*1.05,y:1.42,ancho:2.65,alto:2.84,fondo:.1,material:acero});
-      const techo=bloque(cabina,{z:desplazamiento/2,y:2.9,ancho:2.65,alto:.12,fondo:2.2+ENSANCHE_POR_FILA,color:'#d9dad3'});
+      bloque(cabina,{z:desplazamiento/2,y:-.07,ancho:anchoCabina,alto:.14,fondo:2.2+ENSANCHE_POR_FILA,color:'#b6b3a7'});
+      for(const lado of [-1,1])bloque(cabina,{x:lado*(anchoCabina-.1)/2,z:desplazamiento/2,y:1.42,ancho:.1,alto:2.84,fondo:2.2+ENSANCHE_POR_FILA,material:acero});
+      bloque(cabina,{z:desplazamiento-frente*1.05,y:1.42,ancho:anchoCabina,alto:2.84,fondo:.1,material:acero});
+      const techo=bloque(cabina,{z:desplazamiento/2,y:2.9,ancho:anchoCabina,alto:.12,fondo:2.2+ENSANCHE_POR_FILA,color:'#d9dad3'});
       bloque(cabina,{z:desplazamiento-frente*.98,y:1.05,ancho:2.25,alto:.06,fondo:.08,material:acero});
       cabinas.push({id:cabinas.length+1,x:cx,z:cz,frente,grupo:cabina,techo,piso:1,lado:signo<0?'derecha':'izquierda'});
     }
@@ -118,25 +219,45 @@ export function crearZonaElevadores(padre,{x,z,ancho,fondo}){
   function crearNivel(piso){
     if(niveles.has(piso))return niveles.get(piso);
     const g=new THREE.Group();g.name=`Vestíbulo de elevadores - Piso ${piso}`;g.position.y=cotaPiso(piso);grupo.add(g);
-    const suelo=placa(g,{y:-.03,ancho,fondo:fondoTotal,color:'#8a8077'});
-    if(piso>1)bloque(g,{y:-.19,ancho,alto:.32,fondo:fondoTotal,color:'#aebcc7'});
-    const franja=bloque(g,{y:.002,ancho,alto:.008,fondo:1.6,color:'#d8d0b4'});franja.name='Franja central clara del vestíbulo';franja.userData.sinColision=true;
-    for(let px=-a;px<a;px+=1.1){const junta=bloque(g,{x:px,y:.009,ancho:.015,alto:.003,fondo:1.6,color:'#aaa697'});junta.userData.sinColision=true;}
+    const segundo=piso===2;
+    const colorFrente=segundo?'#f1efe9':colorPared;
+    const fondoPasillo=fondo-2*2.37;
+    const suelo=segundo?pisoVestibuloSegundo(g,ancho,fondoPasillo):placa(g,{y:-.03,ancho,fondo:fondoTotal,color:'#8a8077'});
+    if(!segundo){
+      if(piso>1)bloque(g,{y:-.19,ancho,alto:.32,fondo:fondoTotal,color:'#aebcc7'});
+      const franja=bloque(g,{y:.002,ancho,alto:.008,fondo:1.6,color:'#d8d0b4'});franja.name='Franja central clara del vestíbulo';franja.userData.sinColision=true;
+      for(let px=-a;px<a;px+=1.1){const junta=bloque(g,{x:px,y:.009,ancho:.015,alto:.003,fondo:1.6,color:'#aaa697'});junta.userData.sinColision=true;}
+    }
+    const baseMuro=segundo?cotaPiso(1)+alto-cotaPiso(2):0;
     for(const signo of [-1,1]){
-      bloque(g,{z:signo*bordeJardin,y:alto/2,ancho,alto,fondo:.22,color:colorPared});
       const fila=cabinas.filter(c=>c.frente===-signo);
+      const [inicioPosterior,finMuro]=segundo?murosDeHuecosSegundo(g,fila,a,signo*bordeJardin,baseMuro,alto):[-a,a];
+      const basePosterior=inicioPosterior>-a?-espesorDescanso:baseMuro;
+      const posterior={z:signo*bordeJardin,fondo:.22,color:colorPared};
+      bloque(g,{...posterior,x:(inicioPosterior+finMuro)/2,y:(basePosterior+alto)/2,
+        ancho:finMuro-inicioPosterior,alto:alto-basePosterior});
+      if(basePosterior>baseMuro){
+        const finRecorte=fila[0].x-anchoCabina/2-.16;
+        bloque(g,{...posterior,x:(finRecorte+finMuro)/2,y:(baseMuro+basePosterior)/2,
+          ancho:finMuro-finRecorte,alto:basePosterior-baseMuro});
+      }
       // Paños continuos entre vanos, también en el lado con solo dos ascensores.
       // Abre los extremos marcados del frente en la planta baja.
       const extremosAbiertos=piso===1&&signo===-1;
       let inicio=extremosAbiertos?cabinas[0].x-3.3:-a;
+      if(segundo&&signo===-1){
+        paredConPuerta(g,{x:inicio+1,z:-fondoPasillo/2,baseY:0,largo:2,alto,...acabadoPuertaAzul})
+          .name='Puerta azul lateral del segundo piso';
+        inicio+=2;
+      }
       for(const c of fila){
         const fin=c.x-.88;
-        if(fin>inicio)bloque(g,{x:(inicio+fin)/2,z:c.z+c.frente*1.12,y:alto/2,ancho:fin-inicio,alto,fondo:.25,color:colorPared});
-        bloque(g,{x:c.x,z:c.z+c.frente*1.12,y:(2.72+alto)/2,ancho:1.76,alto:alto-2.72,fondo:.25,color:colorPared});
+        if(fin>inicio)bloque(g,{x:(inicio+fin)/2,z:c.z+c.frente*1.12,y:alto/2,ancho:fin-inicio,alto,fondo:.25,color:colorFrente});
+        bloque(g,{x:c.x,z:c.z+c.frente*1.12,y:(2.72+alto)/2,ancho:1.76,alto:alto-2.72,fondo:.25,color:colorFrente});
         inicio=c.x+.88;
       }
-      const final=extremosAbiertos?cabinas[1].x+2.2:a;
-      if(inicio<final)bloque(g,{x:(inicio+final)/2,z:signo*(b-2.37),y:alto/2,ancho:final-inicio,alto,fondo:.25,color:colorPared});
+      const final=extremosAbiertos?cabinas[1].x+2.2:finMuro;
+      if(inicio<final)bloque(g,{x:(inicio+final)/2,z:signo*(b-2.37),y:alto/2,ancho:final-inicio,alto,fondo:.25,color:colorFrente});
     }
     if(piso===1){
       // Divisiones y retornos señalados a ambos lados de la fila de dos cabinas.
@@ -168,38 +289,58 @@ export function crearZonaElevadores(padre,{x,z,ancho,fondo}){
       }
       // Cierra el tramo marcado entre la fachada de cabinas y el vidrio desplazado.
       vidrioFijo(g,a+.75,b-2.37,1.5,alto,0,'#808c89');
-    }else{
+    }else if(!segundo){
       for(const lado of [-1,1])vidrioFijo(g,lado*a,0,fondoTotal,alto,Math.PI/2);
     }
-    const cubierta=new THREE.Group();cubierta.name='Techo oscuro del vestíbulo';cubierta.visible=false;g.add(cubierta);
-    bloque(cubierta,{y:alto,ancho,alto:.1,fondo:Math.max(1,fondo-4.4),color:'#242b2a'});
-    for(let xx=-a;xx<a;xx+=.2)bloque(cubierta,{x:xx,y:alto-.07,ancho:.025,alto:.1,fondo:Math.max(1,fondo-4.5),color:'#404640'});
-    for(const zz of [-1,1])bloque(cubierta,{z:zz*(b-2.42),y:alto-.12,ancho,alto:.15,fondo:.13,color:'#dddcd1'});
-    for(let xx=-a+1;xx<a;xx+=2.8){
-      const luz=bloque(cubierta,{x:xx,y:alto-.14,ancho:.5,alto:.06,fondo:.22,color:'#fffce3'});
-      luz.material.emissive=new THREE.Color('#fff2c8');luz.material.emissiveIntensity=.8;
+    const cubierta=new THREE.Group();cubierta.name=segundo?'Cielo raso blanco del segundo piso':'Techo oscuro del vestíbulo';cubierta.visible=false;g.add(cubierta);
+    if(segundo){
+      bloque(cubierta,{y:alto,ancho,alto:.12,fondo:fondoPasillo,color:'#f6f4ef'});
+      const luz=new THREE.MeshStandardMaterial({color:'#fffdf7',emissive:'#fff4db',emissiveIntensity:.75});
+      for(let xx=-a+1.4;xx<a;xx+=2.8){
+        const foco=new THREE.Mesh(new THREE.CylinderGeometry(.14,.14,.03,24),luz);
+        foco.position.set(xx,alto-.07,0);cubierta.add(foco);
+      }
+    }else{
+      bloque(cubierta,{y:alto,ancho,alto:.1,fondo:Math.max(1,fondo-4.4),color:'#242b2a'});
+      for(let xx=-a;xx<a;xx+=.2)bloque(cubierta,{x:xx,y:alto-.07,ancho:.025,alto:.1,fondo:Math.max(1,fondo-4.5),color:'#404640'});
+      for(const zz of [-1,1])bloque(cubierta,{z:zz*(b-2.42),y:alto-.12,ancho,alto:.15,fondo:.13,color:'#dddcd1'});
+      for(let xx=-a+1;xx<a;xx+=2.8){
+        const luz=bloque(cubierta,{x:xx,y:alto-.14,ancho:.5,alto:.06,fondo:.22,color:'#fffce3'});
+        luz.material.emissive=new THREE.Color('#fff2c8');luz.material.emissiveIntensity=.8;
+      }
     }
     const puertas=cabinas.map(c=>{
       const portal=new THREE.Group();portal.name=`Portal ascensor ${c.id} · ${c.lado}`;portal.position.set(c.x,0,c.z+c.frente*1.12);g.add(portal);
-      for(const lado of [-1,1])bloque(portal,{x:lado*.84,y:1.35,ancho:.1,alto:2.7,fondo:.24,material:acero});
-      const dintel=bloque(portal,{y:2.72,ancho:1.78,alto:.14,fondo:.24,material:acero});
+      const anchoJamba=segundo?.18:.1;
+      const perfil=segundo?{z:c.frente*.19,fondo:.25}:{z:0,fondo:.24};
+      for(const lado of [-1,1])bloque(portal,{x:lado*(.79+anchoJamba/2),y:1.35,
+        ancho:anchoJamba,alto:2.7,...perfil,material:acero});
+      const dintel=bloque(portal,{y:2.72,ancho:2*(.79+anchoJamba),alto:.14,...perfil,material:acero});
       const hojas=[-1,1].map(lado=>{
         const hoja=bloque(portal,{x:lado*.385,y:1.3,ancho:.755,alto:2.6,fondo:.09,material:aceroPuertas});
         bloque(hoja,{x:-lado*.372,y:0,z:c.frente*.05,ancho:.012,alto:2.6,fondo:.012,color:'#4a504d'});
         return hoja;
       });
       const umbral=bloque(portal,{y:.013,ancho:1.65,alto:.025,fondo:.25,material:acero});umbral.userData.sinColision=true;
-      const indicador=rotulo(portal,`${c.id} · ${piso}`,0,2.96,c.frente*.14,c.frente<0?Math.PI:0);
+      const giro=c.frente<0?Math.PI:0;
+      const indicador=segundo?rotulo(portal,'2',0,3.04,c.frente*.14,giro,'#acaaa3','#24262a'):
+        rotulo(portal,`${c.id} · ${piso}`,0,2.96,c.frente*.14,giro);
+      if(segundo)indicador.scale.set(.46,1,1);
       const boton=bloque(portal,{x:1.15,y:1.22,z:c.frente*.17,ancho:.18,alto:.4,fondo:.06,material:acero});boton.userData.elevador=c.id;
       for(const y of [1.14,1.3])bloque(portal,{x:1.15,y,z:c.frente*.21,ancho:.065,alto:.065,fondo:.025,color:'#d8eee4'});
-      // Señal roja y blanca junto a cada puerta, visible en el video.
-      bloque(portal,{x:1.15,y:2.22,z:c.frente*.17,ancho:.22,alto:.35,fondo:.02,color:'#e5e2d9'});
-      bloque(portal,{x:1.15,y:2.12,z:c.frente*.19,ancho:.22,alto:.1,fondo:.02,color:'#ae3d46'});
+      if(segundo){
+        rotulo(portal,'NO FUMAR',1.15,2.12,c.frente*.19,giro,'#ac383a','#ffffff').scale.set(.48,.55,1);
+        rotulo(portal,'↑ ↓  ASCENSOR',1.15,1.84,c.frente*.19,giro,'#31577b','#ffffff').scale.set(.68,.75,1);
+      }else{
+        bloque(portal,{x:1.15,y:2.22,z:c.frente*.17,ancho:.22,alto:.35,fondo:.02,color:'#e5e2d9'});
+        bloque(portal,{x:1.15,y:2.12,z:c.frente*.19,ancho:.22,alto:.1,fondo:.02,color:'#ae3d46'});
+      }
       return {hojas,abierto:0,dintel,indicador};
     });
     const nivel={grupo:g,suelo,puertas,cubierta};niveles.set(piso,nivel);return nivel;
   }
   const plantaBaja=crearNivel(1);
+  crearNivel(2);
   // Contorno ajustado: franja estrecha y retorno hasta el frente del vidrio.
   const limiteJardin=2.7;
   const extremoIzquierdoJardin=-a+.95;
@@ -226,7 +367,7 @@ export function crearServicioElevadores(zona){
   }
   function mostrarNivel(n){
     crearNivel(n);
-    for(const [i,v]of niveles)v.grupo.visible=i===1||i===n;
+    for(const [i,v]of niveles)v.grupo.visible=i<=2||i===n;
     grupo.updateMatrixWorld(true);revision++;
   }
   function ejecutar(nombre,duracion,actualizar,fin){fase=nombre;tarea={tiempo:0,duracion,actualizar,fin};}
@@ -268,7 +409,7 @@ export function crearServicioElevadores(zona){
     get bloqueado(){return fase!=='libre';},
     get cotaActual(){return seleccion?seleccion.grupo.position.y:cotaPiso(piso);},
     cercano,
-    puntoInicio(){return mundo(zona.ancho/2-1.9,cotaPiso(1),0);},
+    puntoInicio(){return mundo(zona.ancho/2-1.9,cotaPiso(piso),0);},
     usar(pos){
       if(fase!=='libre')return false;
       seleccion=cercano(pos);if(!seleccion)return false;
@@ -306,11 +447,11 @@ export function crearServicioElevadores(zona){
         animarPuerta(seleccion,piso,0,()=>{fase='libre';tarea=null;seleccion=null;revision++;});
       });return true;
     },
-    reiniciar(){
-      tarea=null;fase='libre';piso=1;pendiente=1;seleccion=null;
+    reiniciar(pisoInicial=1){
+      tarea=null;fase='libre';piso=pisoInicial;pendiente=pisoInicial;seleccion=null;
       cabinas.forEach(c=>{c.piso=1;c.grupo.position.y=base;c.techo.visible=true;});
       for(const [n]of niveles)cabinas.forEach(c=>{puerta(c,n,0);corteInterior(c,n,false);});
-      mostrarNivel(1);
+      mostrarNivel(piso);
     },
     actualizar(dt){
       if(tarea){

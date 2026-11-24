@@ -3,12 +3,12 @@ import { ajustarX,ajustarZ,compactarFranja } from './franja-campus.js?v=borde-29
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { CSS2DRenderer } from 'three/addons/renderers/CSS2DRenderer.js';
 import { CONFIG } from './config.js?v=torre-b-341';
-import { ajustarPizarraFinal } from './piedra-piso.js?v=pizarra-279';
-import { crearTorres } from './floors/registro.js?v=columnas-351';
+import { ajustarPizarraFinal } from './piedra-piso.js?v=ceramica-366';
+import { crearTorres } from './floors/registro.js?v=losa-a-425';
 import { crearExteriores } from './exteriores.js?v=piso-353';
-import { crearRecorrido } from './recorrido.js?v=pasillos-292';
+import { crearRecorrido } from './recorrido.js?v=cota-b-418';
 import { crearPuertasFachada } from './puertas.js?v=rejas-abribles-174';
-import { crearServicioElevadores } from './elevadores.js?v=jardin-350';
+import { crearServicioElevadores } from './elevadores.js?v=descanso-422';
 import { crearBebederos } from './bebederos.js?v=columnas-bebederos-210';
 import { crearExpendedoras } from './expendedoras.js?v=358';
 

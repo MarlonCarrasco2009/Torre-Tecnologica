@@ -85,15 +85,16 @@ export function crearRecorrido({escena,campus=escena,camara,controles,canvas,vis
     if(!activo)return;
     limpiar();elevadores.usar(avatar.grupo.position);canvas.focus({preventScroll:true});
   }
-  function irElevadores(){
+  function irElevadores(piso=1){
     if(!activo)cambiar(true);
-    limpiar();elevadores.reiniciar();
+    limpiar();elevadores.reiniciar(piso);
     avatar.grupo.position.copy(elevadores.puntoInicio());
     avatar.grupo.rotation.y=-Math.PI/2;yaw=-Math.PI/2;pitch=.42;distancia=4;
     navegacion.refrescar();actualizarCamara(0,true);canvas.focus({preventScroll:true});
   }
-  document.querySelector('#btn-ir-elevadores').addEventListener('click',irElevadores);
-  document.querySelector('#recorrido-elevadores').addEventListener('click',irElevadores);
+  document.querySelector('#btn-ir-elevadores').addEventListener('click',()=>irElevadores());
+  document.querySelector('#recorrido-elevadores').addEventListener('click',()=>irElevadores());
+  document.querySelector('#btn-vestibulo-segundo').addEventListener('click',()=>irElevadores(2));
   document.querySelector('#btn-recorrer-c').addEventListener('click',()=>{
     if(!activo)cambiar(true);
     limpiar();elevadores.reiniciar();

@@ -953,19 +953,20 @@ function unirTorresAlMuro(grupo){
 
       if(lado===1){
         const base=.08,alto=CONFIG.baseY+CONFIG.altoPiso-base,espesor=torre.id==='C'?.24:.45;
-        const recorteOeste=torre.id==='B'?recorteFrontalB:0;
+        const recorteOeste=torre.id==='A'?2.4:torre.id==='B'?recorteFrontalB:0;
         const anchoFrente=torre.ancho-recorteOeste,centroFrente=torre.x+recorteOeste/2;
-        const pared=bloque(grupo,{x:centroFrente,y:base+alto/2,z:muro,
-          ancho:anchoFrente,alto,fondo:espesor,material:materialFrontal});
-        pared.name=`Pared frontal delgada - Torre ${torre.id}`;
+        const grosorColumna=1.05,retiroColumna=1.3;
+        bloque(grupo,{x:centroFrente,y:base+alto/2,z:muro,
+          ancho:anchoFrente,alto,fondo:espesor,material:materialFrontal})
+          .name=`Pared frontal delgada - Torre ${torre.id}`;
         if(torre.id==='A'||torre.id==='B'){
-          const grosor=1.05,largo=1.2,baseColumnas=CONFIG.baseY+.08;
+          const largo=1.2,baseColumnas=CONFIG.baseY+.08;
           const altoColumnas=base+alto-baseColumnas;
           for(const ladoColumna of (torre.id==='A'?[-1,1]:[-1])){
             bloque(grupo,{
-              x:centroFrente+ladoColumna*(anchoFrente/2-1.3),
+              x:centroFrente+ladoColumna*(anchoFrente/2-retiroColumna),
               y:baseColumnas+altoColumnas/2,z:muro-espesor/2-largo/2,
-              ancho:grosor,alto:altoColumnas,fondo:largo,material:materialFrontal
+              ancho:grosorColumna,alto:altoColumnas,fondo:largo,material:materialFrontal
             }).name=`Columna del jardín frontal ${torre.id} · ${ladoColumna<0?'izquierda':'derecha'}`;
           }
         }
