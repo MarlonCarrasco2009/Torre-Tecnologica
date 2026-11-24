@@ -1,10 +1,11 @@
 import * as THREE from 'three';
 import { ajustarX,ajustarZ } from '../franja-campus.js?v=pasillos-292';
-import { AMBIENTES,CONFIG,distribucionInterior } from '../config.js?v=cota-b-418';
-import { bloque,placa,columna,etiqueta,paredVidrio,paredConPuertas,paredConPuerta,fachadaTorreA } from '../geometria.js?v=puerta-admision-371';
+import { AMBIENTES,CONFIG,distribucionInterior } from '../config.js?v=losa-b-434';
+import { bloque,placa,columna,etiqueta,paredVidrio,paredConPuertas,paredConPuerta,fachadaTorreA } from '../geometria.js?v=puertas-visor-447';
 import { crearZonaElevadores,ENSANCHE_POR_FILA,cotaPiso } from '../elevadores.js?v=descanso-422';
 
 const acabadoTabiquesAdmision=new THREE.MeshStandardMaterial({color:'#40444c',roughness:.84});
+const anchoPasilloOesteA=2;
 
 function crearLosaSegundo(padre,torre,paños){
   const losa=new THREE.Group();
@@ -232,15 +233,48 @@ export function crearPiso1(torre, objetosSeleccionables, capaEtiquetas){
       const limiteEscalera=crearEscaleraTrasPuerta(grupo,acceso,largoAcceso,ancho);
       const finElevadores=zona.grupo.position.z+zona.fondo/2+ENSANCHE_POR_FILA+.11;
       const oesteNucleo=zona.grupo.position.x-ancho/2,esteNucleo=oesteNucleo+ancho;
-      // El descanso y el vestíbulo ya tienen suelo. Los paños nuevos llegan a sus bordes.
-      crearLosaSegundo(grupo,torre,[
-        [-w/2,w/2,ejePosteriorB-.15,limiteEscalera],
-        [-w/2,oesteNucleo,limiteEscalera,finElevadores],
-        [esteNucleo,w/2,bordeVidrio,finElevadores],
-        [-w/2,w/2,finElevadores,d/2]
-      ]);
+      const torreA=CONFIG.torres.A,topico=AMBIENTES.A.find(a=>a.id==='a-topico');
+      const llegadaPuente=torreA.x+(topico.x-topico.ancho/2)*torreA.ancho/16-.15-anchoPasilloOesteA-torre.x;
+      const ejePuente=zona.grupo.position.z,semianchoPuente=1.9;
       const lateral={x:x-ancho/2,z:(finGris+limiteEscalera)/2,largo:limiteEscalera-finGris};
       const inicioPiso=lateral.x-.15,finPiso=w/2;
+      const frenteLosa=CONFIG.fondoCampus/2-torre.z;
+      // El descanso y el vestíbulo ya tienen suelo. Los paños nuevos llegan a sus bordes.
+      crearLosaSegundo(grupo,torre,[
+        [inicioPiso,finPiso,ejePosteriorB-.15,limiteEscalera],
+        [inicioPiso,oesteNucleo,limiteEscalera,finElevadores],
+        [esteNucleo,w/2,limiteEscalera,finElevadores],
+        [inicioPiso,finPiso,finElevadores,frenteLosa],
+        [w/2,llegadaPuente,ejePuente-semianchoPuente,ejePuente+semianchoPuente]
+      ]);
+      const nivelPuente=cotaPiso(2),espesorPretil=.16,altoPretil=.94;
+      const blancoPretil=new THREE.MeshStandardMaterial({color:'#f4f4f2',roughness:.86});
+      const metalPasamanos=new THREE.MeshStandardMaterial({color:'#c5cbce',metalness:.55,roughness:.35});
+      function pretil(x1,z1,x2,z2,intervalos){
+        const dx=x2-x1,dz=z2-z1,largo=dx+dz;
+        const centro={x:(x1+x2)/2,z:(z1+z2)/2};
+        bloque(grupo,{...centro,y:nivelPuente+altoPretil/2,
+          ancho:dx||espesorPretil,alto:altoPretil,fondo:dz||espesorPretil,material:blancoPretil})
+          .name='Pretil blanco de la pasarela';
+        const baseMetal=nivelPuente+altoPretil,altoPoste=.22;
+        for(let i=0;i<=intervalos;i++){
+          const t=(.08+i*(largo-.16)/intervalos)/largo;
+          bloque(grupo,{x:x1+t*dx,z:z1+t*dz,y:baseMetal+altoPoste/2,
+            ancho:.045,alto:altoPoste,fondo:.045,material:metalPasamanos})
+            .name='Soporte del pasamanos de la pasarela';
+        }
+        bloque(grupo,{...centro,y:baseMetal+altoPoste+.03,
+          ancho:dx||.09,alto:.06,fondo:dz||.09,material:metalPasamanos})
+          .name='Pasamanos de la pasarela';
+      }
+      for(const lado of [-1,1]){
+        const zBorde=ejePuente+lado*(semianchoPuente-espesorPretil/2);
+        pretil(w/2,zBorde,llegadaPuente,zBorde,6);
+      }
+      const xBorde=llegadaPuente+espesorPretil/2;
+      const zEsquina=torreA.z+torreA.fondo/2-torre.z-espesorPretil/2;
+      pretil(xBorde,ejePuente+semianchoPuente-espesorPretil,xBorde,zEsquina-espesorPretil/2,14);
+      pretil(llegadaPuente,zEsquina,llegadaPuente+anchoPasilloOesteA,zEsquina,1);
       const biblioteca=AMBIENTES.B.find(sala=>sala.id==='b-biblioteca');
       // La cara superior de cada base es el piso terminado y seleccionable.
       for(const [izq,desde,hasta] of [[inicioPiso,ejePosteriorB+.15,finGris],
@@ -518,12 +552,109 @@ export function crearPiso1(torre, objetosSeleccionables, capaEtiquetas){
       const hueco=crearEscaleraTopico(grupo,extremoFachada-espesor/2,centroPuertaAzul,caraInteriorLateral);
       const inicioPasillo=z+fondo/2-.8-1.35/2-.45;
       const caraExteriorOeste=extremoFondo-espesor/2;
+      const frenteLosa=CONFIG.fondoCampus/2-torre.z;
       crearLosaSegundo(grupo,torre,[
+        [caraExteriorOeste-anchoPasilloOesteA,caraExteriorOeste,-d/2,d/2],
         [caraExteriorOeste,extremoFachada,-d/2,caraInteriorLateral],
         [caraExteriorOeste,hueco.oeste,caraInteriorLateral,hueco.sur],
-        [caraExteriorOeste,extremoFachada,hueco.sur,d/2],
-        [extremoFachada,w/2,inicioPasillo,d/2]
+        [caraExteriorOeste,extremoFachada,hueco.sur,frenteLosa],
+        [extremoFachada,w/2,inicioPasillo,frenteLosa]
       ]);
+      const ejeDivisionConferencias=4.5,espesorPared=.2;
+      const inicioPared=ejeDivisionConferencias-espesorPared/2;
+      const tabique={y:cotaPiso(2)+h/2,alto:h,color:'#e5e8ed'};
+      const desdeTabique=caraExteriorOeste+espesorPared;
+      const ejeDivisionCentral=20;
+      const ejeTabiqueCorto=desdeTabique+1.2,mitadEspesor=espesorPared/2;
+      const extremoFrontal=23.2,extremoPosterior=17;
+      function accesoAzul(xMuro,desde,hasta,zPuerta){
+        const centro=(desde+hasta)/2,anchoPuerta=1.3;
+        const pared=paredConPuerta(grupo,{x:xMuro,z:centro,largo:hasta-desde,rotacion:-Math.PI/2,
+          baseY:cotaPiso(2),alto:h,espesor:espesorPared,puertaCentro:zPuerta-centro,
+          anchoPuerta,altoPuerta:2.35,colorMuro:tabique.color,colorMarco:'#24477d',colorPuerta:'#104da5',
+          manijaPalanca:true,visorVertical:true,interactiva:true});
+        pared.name='Acceso al segundo piso de Torre A desde el pasillo';
+        const hoja=pared.children.find(o=>o.userData.puertaInteractiva);
+        hoja.name='Puerta azul con visor del segundo piso de Torre A';
+        // La compactación desplaza la bisagra y las jambas; ajusta la hoja al vano final.
+        const centroZ=torre.z+zPuerta,xMundo=torre.x+xMuro;
+        hoja.scale.x=(ajustarZ(centroZ+anchoPuerta/2,xMundo)-ajustarZ(centroZ-anchoPuerta/2,xMundo))/anchoPuerta;
+      }
+      const xMuroPasillo=caraExteriorOeste+mitadEspesor,finTramoPosterior=extremoPosterior+mitadEspesor;
+      bloque(grupo,{...tabique,x:xMuroPasillo,z:(inicioPared+finTramoPosterior)/2,
+        ancho:espesorPared,fondo:finTramoPosterior-inicioPared}).name='Pared del segundo piso junto al pasillo de Torre A';
+      accesoAzul(xMuroPasillo,extremoFrontal-mitadEspesor,frenteLosa,32);
+      const divisionFrontal=28.5;
+      for(const ejeZ of [divisionFrontal,ejeDivisionCentral,ejeDivisionConferencias]){
+        const inicio=ejeZ===ejeDivisionCentral?ejeTabiqueCorto-mitadEspesor:desdeTabique;
+        bloque(grupo,{...tabique,x:(inicio+w/2)/2,z:ejeZ,
+          ancho:w/2-inicio,fondo:espesorPared}).name='Pared transversal del segundo piso de Torre A';
+      }
+      accesoAzul(ejeTabiqueCorto,extremoPosterior+mitadEspesor,ejeDivisionCentral-mitadEspesor,18.65);
+      accesoAzul(ejeTabiqueCorto,ejeDivisionCentral+mitadEspesor,extremoFrontal-mitadEspesor,21.4);
+      const finRemate=ejeTabiqueCorto+mitadEspesor;
+      for(const ejeZ of [extremoFrontal,extremoPosterior]){
+        bloque(grupo,{...tabique,x:(desdeTabique+finRemate)/2,z:ejeZ,
+          ancho:finRemate-desdeTabique,fondo:espesorPared}).name='Remate del tabique corto de Torre A';
+      }
+      const ejeInterior=xMuroPasillo+2,ejeSaliente=ejeInterior-1.3;
+      const quiebre=-.9,primeraDivision=-13,segundaDivision=-19.9,ultimaDivision=-27.65;
+      function longitudinal(ejeX,desde,hasta){
+        bloque(grupo,{...tabique,x:ejeX,z:(desde+hasta)/2,ancho:espesorPared,
+          fondo:hasta-desde}).name='Pared longitudinal junto a las divisiones de Torre A';
+      }
+      function transversal(ejeZ,desde,hasta){
+        bloque(grupo,{...tabique,x:(desde+hasta)/2,z:ejeZ,ancho:hasta-desde,
+          fondo:espesorPared}).name='División del segundo piso de Torre A';
+      }
+      accesoAzul(ejeInterior,quiebre-mitadEspesor,ejeDivisionConferencias-mitadEspesor,.9);
+      transversal(quiebre,xMuroPasillo+mitadEspesor,ejeInterior-mitadEspesor);
+      longitudinal(xMuroPasillo,primeraDivision-mitadEspesor,quiebre+mitadEspesor);
+      transversal(primeraDivision,xMuroPasillo+mitadEspesor,w/2);
+      const inicioSaliente=-24.75,finSaliente=-17.15;
+      accesoAzul(ejeInterior,ultimaDivision-mitadEspesor,inicioSaliente-mitadEspesor,-26.2);
+      longitudinal(ejeInterior,inicioSaliente-mitadEspesor,finSaliente+mitadEspesor);
+      accesoAzul(ejeInterior,finSaliente+mitadEspesor,primeraDivision-mitadEspesor,-14.8);
+      for(const ejeZ of [segundaDivision,ultimaDivision]){
+        transversal(ejeZ,ejeInterior+mitadEspesor,w/2);
+      }
+      bloque(grupo,{...tabique,x:(ejeSaliente+ejeInterior)/2-mitadEspesor,
+        z:(inicioSaliente+finSaliente)/2,ancho:ejeInterior-ejeSaliente,
+        fondo:finSaliente-inicioSaliente+espesorPared}).name='Saliente macizo junto a Tópico';
+      // El borde oeste de cada aula sigue los entrantes de la pared del pasillo.
+      const aulas=[
+        ['A-200',ultimaDivision,segundaDivision,[[ultimaDivision,ejeInterior]]],
+        ['A-201',segundaDivision,primeraDivision,[[segundaDivision,ejeInterior]]],
+        ['A-202',primeraDivision,ejeDivisionConferencias,[[primeraDivision,xMuroPasillo],[quiebre,ejeInterior]]],
+        ['A-203',ejeDivisionConferencias,ejeDivisionCentral,[[ejeDivisionConferencias,xMuroPasillo],[extremoPosterior,ejeTabiqueCorto]]],
+        ['A-204',ejeDivisionCentral,divisionFrontal,[[ejeDivisionCentral,ejeTabiqueCorto],[extremoFrontal,xMuroPasillo]]],
+        ['A-205',divisionFrontal,frenteLosa,[[divisionFrontal,xMuroPasillo]]]
+      ];
+      for(const [nombre,desde,hasta,borde] of aulas){
+        const forma=new THREE.Shape();
+        forma.moveTo(w/2,-desde);
+        for(let i=0;i<borde.length;i++){
+          const [inicio,oeste]=borde[i],fin=borde[i+1]?.[0]??hasta;
+          forma.lineTo(oeste+mitadEspesor,-inicio);
+          forma.lineTo(oeste+mitadEspesor,-fin);
+        }
+        forma.lineTo(w/2,-hasta);
+        forma.closePath();
+        const sueloAula=new THREE.Mesh(new THREE.ShapeGeometry(forma).rotateX(-Math.PI/2),
+          new THREE.MeshStandardMaterial({color:'#c7c5be',roughness:.88,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-1}));
+        sueloAula.position.y=cotaPiso(2)+.003;
+        sueloAula.name=nombre;
+        sueloAula.receiveShadow=true;
+        sueloAula.userData.sinColision=true;
+        const id=nombre.toLowerCase();
+        sueloAula.userData.info={id,nombre,torre:torre.id,tipo:'Aula · Segundo piso',
+          descripcion:`Aula ${nombre} del segundo piso de la Torre A.`};
+        grupo.add(sueloAula);
+        objetosSeleccionables.push(sueloAula);
+        const rotulo=etiqueta(capaEtiquetas,nombre,torre.x+(borde[0][1]+w/2)/2,
+          cotaPiso(2)+.15,torre.z+(desde+hasta)/2);
+        rotulo.userData.ambiente=id;
+      }
     }
 
     // Los dos lados de acceso de los elevadores se cierran con vidrio y puertas.
