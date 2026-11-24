@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { ajustarZ } from './franja-campus.js?v=pasillos-292';
-import { CONFIG,AMBIENTES } from './config.js?v=jardin-243';
+import { CONFIG,AMBIENTES } from './config.js?v=losa-b-434';
 import { crearIngreso } from './ingreso.js?v=colision-rejas-piso-180';
 import { bloque,placa,columna,etiqueta } from './geometria.js';
 import { aplicarPiedraPisos } from './piedra-piso.js?v=pizarra-279';
@@ -13,7 +13,12 @@ import { crearSubterraneoC,pisoConHueco,HUECO_C,ACCESO_C } from './subterraneo-c
 import { aplicarAcabadosLateral } from './acabados-lateral.js?v=video-1511-vegetacion';
 
 const pavimento=CONFIG.acabados.piso;
-const recorteFrontalB=1.6;
+const recorteFrontalB=CONFIG.recorteFrontalB;
+const topicoA=AMBIENTES.A.find(ambiente=>ambiente.id==='a-topico');
+// La losa toma su borde oeste de la cara exterior del tabique de Tópico.
+const oesteLosaA=(topicoA.x-topicoA.ancho/2)*CONFIG.torres.A.ancho/16-.15;
+const recorteFrontalA=oesteLosaA+CONFIG.torres.A.ancho/2;
+const extensionPorExtremoA=1;
 const caraExteriorAula=CONFIG.torres.B.x+CONFIG.torres.B.ancho/2+.3;
 const nivelLlegadaEscaleras=1.35;
 const nivelExplanada=nivelLlegadaEscaleras-.01;
@@ -886,9 +891,10 @@ function crearPerimetro(grupo){
   // Frente alternado: cada pared de torre sustituye al cerco en su huella.
   let inicio=-x;
   for(const torre of Object.values(CONFIG.torres).sort((a,b)=>a.x-b.x)){
-    const recorte=torre.id==='B'?recorteFrontalB:0;
-    trazarMuroPerimetral(inicio,z,torre.x-torre.ancho/2+recorte,z);
-    inicio=torre.x+torre.ancho/2;
+    const recorte=torre.id==='A'?recorteFrontalA:torre.id==='B'?recorteFrontalB:0;
+    const extension=torre.id==='A'?extensionPorExtremoA:0;
+    trazarMuroPerimetral(inicio,z,torre.x-torre.ancho/2+recorte-extension,z);
+    inicio=torre.x+torre.ancho/2+extension;
   }
   const ingresoX=puerta.x+puerta.desplazamientoX;
   trazarMuroPerimetral(inicio,z,izquierda,z);
@@ -953,20 +959,21 @@ function unirTorresAlMuro(grupo){
 
       if(lado===1){
         const base=.08,alto=CONFIG.baseY+CONFIG.altoPiso-base,espesor=torre.id==='C'?.24:.45;
-        const recorteOeste=torre.id==='A'?2.4:torre.id==='B'?recorteFrontalB:0;
+        const recorteOeste=torre.id==='A'?recorteFrontalA:torre.id==='B'?recorteFrontalB:0;
         const anchoFrente=torre.ancho-recorteOeste,centroFrente=torre.x+recorteOeste/2;
-        const grosorColumna=1.05,retiroColumna=1.3;
+        const anchoPared=anchoFrente+(torre.id==='A'?2*extensionPorExtremoA:0);
         bloque(grupo,{x:centroFrente,y:base+alto/2,z:muro,
-          ancho:anchoFrente,alto,fondo:espesor,material:materialFrontal})
+          ancho:anchoPared,alto,fondo:espesor,material:materialFrontal})
           .name=`Pared frontal delgada - Torre ${torre.id}`;
         if(torre.id==='A'||torre.id==='B'){
-          const largo=1.2,baseColumnas=CONFIG.baseY+.08;
-          const altoColumnas=base+alto-baseColumnas;
+          const largo=1.2,baseColumnas=CONFIG.baseY+.08,superior=base+alto;
           for(const ladoColumna of (torre.id==='A'?[-1,1]:[-1])){
+            const grosorColumna=torre.id==='A'&&ladoColumna===-1?.72:1.05;
+            const retiroColumna=torre.id==='A'?grosorColumna/2:1.3;
             bloque(grupo,{
               x:centroFrente+ladoColumna*(anchoFrente/2-retiroColumna),
-              y:baseColumnas+altoColumnas/2,z:muro-espesor/2-largo/2,
-              ancho:grosorColumna,alto:altoColumnas,fondo:largo,material:materialFrontal
+              y:(baseColumnas+superior)/2,z:muro-espesor/2-largo/2,
+              ancho:grosorColumna,alto:superior-baseColumnas,fondo:largo,material:materialFrontal
             }).name=`Columna del jardín frontal ${torre.id} · ${ladoColumna<0?'izquierda':'derecha'}`;
           }
         }

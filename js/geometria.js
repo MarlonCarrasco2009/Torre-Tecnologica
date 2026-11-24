@@ -118,7 +118,7 @@ export function paredConPuertas(padre,{x,z,largo,baseY,alto=3.2,rotacion=0}){
 // Muro con un único vano y hoja abierta, usado para conectar el jardín con la sala.
 export function paredConPuerta(padre,{x,z,largo,baseY,alto=3.2,rotacion=0,puertaCentro=0,
   colorMuro=paredNormal,colorPuerta='#af9276',colorMarco='#657582',interactiva=false,
-  anchoPuerta=1.35,altoPuerta=2.65,manijaPalanca=false,colorTirador='#657582',ventanasIzquierda=[],inicioMuro=-largo/2}){
+  anchoPuerta=1.35,altoPuerta=2.65,espesor=.3,visorVertical=false,manijaPalanca=false,colorTirador='#657582',ventanasIzquierda=[],inicioMuro=-largo/2}){
   const pared=new THREE.Group();
   pared.name='Muro con puerta abierta hacia el jardín';
   pared.position.set(x,baseY,z);
@@ -128,7 +128,6 @@ export function paredConPuerta(padre,{x,z,largo,baseY,alto=3.2,rotacion=0,puerta
   const marco=new THREE.MeshStandardMaterial({color:colorMarco,roughness:.5});
   const tirador=new THREE.MeshStandardMaterial({color:colorTirador,roughness:.5});
   const hojaMat=new THREE.MeshStandardMaterial({color:colorPuerta,roughness:.65});
-  const espesor=.3;
   const izquierda=inicioMuro,derecha=largo/2;
   const vanoIzq=puertaCentro-anchoPuerta/2,vanoDer=puertaCentro+anchoPuerta/2;
   const tramos=[];
@@ -143,8 +142,8 @@ export function paredConPuerta(padre,{x,z,largo,baseY,alto=3.2,rotacion=0,puerta
   }
   if(derecha-vanoDer>0) bloque(pared,{x:(vanoDer+derecha)/2,y:alto/2,ancho:derecha-vanoDer,alto,fondo:espesor,material:muro});
   bloque(pared,{x:puertaCentro,y:(alto+altoPuerta)/2,ancho:anchoPuerta,alto:alto-altoPuerta,fondo:espesor,material:muro});
-  for(const borde of [vanoIzq,vanoDer]) bloque(pared,{x:borde,y:altoPuerta/2,ancho:.08,alto:altoPuerta,fondo:.34,material:marco});
-  bloque(pared,{x:puertaCentro,y:altoPuerta,ancho:anchoPuerta+.08,alto:.08,fondo:.34,material:marco});
+  for(const borde of [vanoIzq,vanoDer]) bloque(pared,{x:borde,y:altoPuerta/2,ancho:.08,alto:altoPuerta,fondo:espesor+.04,material:marco});
+  bloque(pared,{x:puertaCentro,y:altoPuerta,ancho:anchoPuerta+.08,alto:.08,fondo:espesor+.04,material:marco});
   const puerta=new THREE.Group();
   puerta.name='Puerta abierta de conexión al jardín';
   puerta.position.x=vanoIzq;
@@ -152,7 +151,22 @@ export function paredConPuerta(padre,{x,z,largo,baseY,alto=3.2,rotacion=0,puerta
   if(interactiva)Object.assign(puerta.userData,{puerta:true,puertaInteractiva:true,
     abierta:false,anguloAbierto:Math.PI/2,colisionDinamica:true});
   pared.add(puerta);
-  bloque(puerta,{x:anchoPuerta/2,y:altoPuerta/2,ancho:anchoPuerta-.1,alto:altoPuerta-.08,fondo:.1,material:hojaMat});
+  if(visorVertical){
+    const izq=.05,der=anchoPuerta-.05,v1=anchoPuerta*.55,v2=anchoPuerta*.76;
+    const bajo=.3,tope=altoPuerta-.48;
+    for(const [a,b,y0,y1] of [[izq,v1,.04,altoPuerta-.04],[v2,der,.04,altoPuerta-.04],
+      [v1,v2,.04,bajo],[v1,v2,tope,altoPuerta-.04]]){
+      bloque(puerta,{x:(a+b)/2,y:(y0+y1)/2,ancho:b-a,alto:y1-y0,fondo:.1,material:hojaMat});
+    }
+    const cristal=new THREE.MeshStandardMaterial({color:'#aec5cb',transparent:true,opacity:.36,
+      roughness:.17,depthWrite:false});
+    bloque(puerta,{x:(v1+v2)/2,y:(bajo+tope)/2,ancho:v2-v1,alto:tope-bajo,
+      fondo:.018,material:cristal,sombra:false}).name='Visor vertical de vidrio';
+    bloque(puerta,{x:der-.19,y:altoPuerta-.25,z:.055,ancho:.27,alto:.105,
+      fondo:.01,color:'#f2f2ed'}).name='Placa superior de la puerta';
+  }else{
+    bloque(puerta,{x:anchoPuerta/2,y:altoPuerta/2,ancho:anchoPuerta-.1,alto:altoPuerta-.08,fondo:.1,material:hojaMat});
+  }
   if(manijaPalanca){
     const plata=new THREE.MeshStandardMaterial({color:'#d3d5d6',metalness:.55,roughness:.28});
     for(const cara of [-1,1]){
