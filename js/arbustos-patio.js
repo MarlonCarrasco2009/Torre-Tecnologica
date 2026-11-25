@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import {plantarCobertura,tierraJardin} from './vegetacion.js?v=jardin-265';
+import {plantarCobertura,tierraJardin} from './vegetacion.js';
 
 // Los motivos se leen desde el pasillo exterior: izquierda (+Z) a derecha (-Z).
 export function crearDisenosArbustos(patio,escalaZ){

@@ -1,16 +1,16 @@
 import * as THREE from 'three';
-import { ajustarZ } from './franja-campus.js?v=pasillos-292';
-import { CONFIG,AMBIENTES } from './config.js?v=losa-b-434';
-import { crearIngreso } from './ingreso.js?v=colision-rejas-piso-180';
+import { ajustarZ } from './franja-campus.js';
+import { CONFIG,AMBIENTES } from './config.js';
+import { crearIngreso } from './ingreso.js';
 import { bloque,placa,columna,etiqueta } from './geometria.js';
-import { aplicarPiedraPisos } from './piedra-piso.js?v=pizarra-279';
+import { aplicarPiedraPisos } from './piedra-piso.js';
 import { aplicarCesped } from './cesped.js';
-import { cubrirJardinesConTierraYPasto } from './vegetacion.js?v=pasillos-292';
-import { crearDisenosArbustos } from './arbustos-patio.js?v=jardin-266';
+import { cubrirJardinesConTierraYPasto } from './vegetacion.js';
+import { crearDisenosArbustos } from './arbustos-patio.js';
 import { aplicarCementoMuros } from './cemento.js';
-import { crearLateralC } from './lateral-c.js?v=video-1511-vegetacion';
-import { crearSubterraneoC,pisoConHueco,HUECO_C,ACCESO_C } from './subterraneo-c.js?v=video-1511-vegetacion';
-import { aplicarAcabadosLateral } from './acabados-lateral.js?v=video-1511-vegetacion';
+import { crearLateralC } from './lateral-c.js';
+import { crearSubterraneoC,pisoConHueco,HUECO_C,ACCESO_C } from './subterraneo-c.js';
+import { aplicarAcabadosLateral } from './acabados-lateral.js';
 
 const pavimento=CONFIG.acabados.piso;
 const recorteFrontalB=CONFIG.recorteFrontalB;
@@ -832,7 +832,7 @@ function trazarMuro(grupo,x1,z1,x2,z2){
   tramo.position.set((x1+x2)/2,0,(z1+z2)/2);
   tramo.rotation.y=angulo;
   grupo.add(tramo);
-  const espesor=.24,base=.08,zocalo=1.7,altoPanel=1.5;
+  const espesor=CONFIG.espesorCerco,base=.08,zocalo=1.7,altoPanel=1.5;
   bloque(tramo,{y:base+zocalo/2,ancho:largo,alto:zocalo,fondo:espesor,color:CONFIG.acabados.muro})
     .name='Zócalo del cerco';
   const panel=new THREE.Shape();
@@ -941,7 +941,10 @@ function crearPerimetro(grupo){
       color:CONFIG.acabados.celosia}).name='Panel de cemento del cerco';
   }
   if(muroFrontalIngreso)muroFrontalIngreso.name='Muro frontal del Ingreso separado';
-  trazarMuroPerimetral(-x,-z,-x,z);
+  const celosiaC=trazarMuroPerimetral(-x,-z,-x,z);
+  if(celosiaC)celosiaC.traverse(o=>{
+    if(o.name==='Panel de cemento del cerco'){o.material=o.material.clone();o.material.color.set('#dcdad1');}
+  });
   // El lateral derecho se acorta solo por arriba, conservando fijo el tramo hacia Acceso.
   const recorteSuperiorLateral=14;
   const muroLateralDerecho=trazarMuroPerimetral(extremoDerecho,-z+recorteSuperiorLateral,
@@ -961,6 +964,7 @@ function unirTorresAlMuro(grupo){
   // Acabado independiente para los bloques frontales; el cerco conserva su color.
   const materialFrontal=new THREE.MeshStandardMaterial({color:'#40444c',roughness:.9});
   for(const torre of Object.values(CONFIG.torres)){
+    if(torre.id==='C')continue; // C: el nuevo edificio cierra su frente.
     for(const lado of [-1,1]){
       // Retira la cubierta y ambos soportes del bloque marcado detrás del Tópico.
       if(lado===-1)continue;
@@ -1086,6 +1090,12 @@ export function crearExteriores(escena){
     fondo:limiteFrontal-bordeFrontalB,color:pavimento});
   const bordePosteriorB=torreB.z-torreB.fondo/2;
   const limitePosterior=-CONFIG.fondoCampus/2;
+  const torreC=CONFIG.torres.C;
+  for(const [lado,nombre] of [[-1,'Pavimento del lateral de la caseta C'],[1,'Pavimento del costado de la cafetería C']]){
+    const extremo=torreC.z+lado*torreC.fondo/2,cerco=lado*CONFIG.fondoCampus/2;
+    pisoMacizo(nombre,{x:torreC.x,z:(extremo+cerco)/2,ancho:torreC.ancho,
+      fondo:Math.abs(cerco-extremo),color:pavimento});
+  }
   pisoMacizo('Paso nivelado de piedra junto al aula de Torre B',{
     x:torreB.x,z:(limitePosterior+bordePosteriorB)/2,ancho:torreB.ancho,
     fondo:bordePosteriorB-limitePosterior,color:pavimento},nivelExplanada);

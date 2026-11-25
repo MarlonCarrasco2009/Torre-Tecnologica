@@ -66,14 +66,15 @@ export function crearPersonaje(){
     ovalo(rodilla,zapato,0,-.39,.055,.105,.10,.18);
     piernas.push({cadera,rodilla});
   }
-  let tiempo=0,fase=0,intensidad=0,saludo=0;
+  let tiempo=0,fase=0,intensidad=0,saludo=0,flexion=0;
   return {grupo,
     saludar(){saludo=2.4;},
-    reiniciar(){saludo=0;intensidad=0;fase=0;},
-    animar(dt,velocidad){
+    reiniciar(){saludo=0;intensidad=0;fase=0;flexion=0;},
+    animar(dt,velocidad,enAire=false){
       tiempo+=dt;saludo=Math.max(0,saludo-dt);
       const corriendo=velocidad>3.2;
       intensidad=THREE.MathUtils.damp(intensidad,velocidad>.05?1:0,12,dt);
+      flexion=THREE.MathUtils.damp(flexion,enAire?1:0,16,dt);
       fase+=dt*(corriendo?12:8);
       cuerpo.position.y=Math.sin(fase*2)*.026*intensidad+Math.sin(tiempo*2)*.006*(1-intensidad);
       torso.rotation.x=corriendo?.08*intensidad:0;
@@ -82,19 +83,22 @@ export function crearPersonaje(){
         const paso=Math.sin(fase+i*Math.PI);
         cadera.rotation.x=paso*(corriendo?.8:.52)*intensidad;
         rodilla.rotation.x=Math.max(0,-paso)*(corriendo?1.05:.55)*intensidad;
+        cadera.rotation.x=THREE.MathUtils.lerp(cadera.rotation.x,i?-.42:-.65,flexion);
+        rodilla.rotation.x=THREE.MathUtils.lerp(rodilla.rotation.x,i?.70:.91,flexion);
       });
       brazos.forEach(({hombro,codo,lado},i)=>{
         hombro.rotation.x=-Math.sin(fase+i*Math.PI)*(corriendo?.75:.44)*intensidad;
         hombro.rotation.z=lado*(.10+Math.sin(tiempo*2)*.025*(1-intensidad));
         codo.rotation.x=-(corriendo?.85:.12)*intensidad;
         codo.rotation.z=0;
+        hombro.rotation.x=THREE.MathUtils.lerp(hombro.rotation.x,-.55,flexion);
       });
       if(saludo>0){
         const mezcla=Math.min(1,saludo*4,(2.4-saludo)*5);
         brazos[0].hombro.rotation.z=THREE.MathUtils.lerp(brazos[0].hombro.rotation.z,-2.3,mezcla);
         brazos[0].codo.rotation.z=(.4+Math.sin(tiempo*15)*.3)*mezcla;
       }
-      return saludo>0?'Saludando':velocidad>.05?(corriendo?'Corriendo':'Caminando'):'En reposo';
+      return enAire?'Saltando':saludo>0?'Saludando':velocidad>.05?(corriendo?'Corriendo':'Caminando'):'En reposo';
     }
   };
 }

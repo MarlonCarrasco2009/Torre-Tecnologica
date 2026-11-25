@@ -1,8 +1,8 @@
 import * as THREE from 'three';
 import { CONFIG } from '../config.js';
-import { crearPiso1 } from './piso1.js?v=vidrio-espejo-504';
-import { cubrirJardinesConTierraYPasto } from '../vegetacion.js?v=pasillos-292';
-import { aplicarPiedraPisos } from '../piedra-piso.js?v=pizarra-279';
+import { crearPiso1 } from './piso1.js';
+import { cubrirJardinesConTierraYPasto } from '../vegetacion.js';
+import { aplicarPiedraPisos } from '../piedra-piso.js';
 
 // Cada torre es un grupo independiente. Así se añaden pisos después.
 export function crearTorres(escena,seleccionables,capaEtiquetas){
@@ -18,7 +18,7 @@ export function crearTorres(escena,seleccionables,capaEtiquetas){
       cubrirJardinesConTierraYPasto(edificio.getObjectByName('Área de elevadores'),z=>z);
     }
     const bases=['Base del pasillo exterior de Torre A','Base del área abierta de Torre A','Base frontal de Torre B',
-      'Pavimento lateral oeste de Torre B','Pavimento del acceso a la biblioteca']
+      'Pavimento lateral oeste de Torre B','Pavimento del acceso a la biblioteca','Base continua del patio de Torre C']
       .map(nombre=>edificio.getObjectByName(nombre)).filter(Boolean);
     if(bases.length)aplicarPiedraPisos(bases,CONFIG.acabados.piso);
   }

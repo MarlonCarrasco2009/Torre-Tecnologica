@@ -13,7 +13,7 @@ export function crearExpendedoras(padre){
   const cargador=new THREE.TextureLoader();
   const base=new THREE.MeshStandardMaterial({color:'#27292a',roughness:.8});
   function acabadoFoto(id){
-    const url=new URL(`../assets/expendedoras/${id}.jpg`,import.meta.url);
+    const url=new URL(`./assets/expendedoras/${id}.jpg`,document.baseURI);
     const mapa=cargador.load(url.href);
     mapa.colorSpace=THREE.SRGBColorSpace;
     mapa.anisotropy=4;

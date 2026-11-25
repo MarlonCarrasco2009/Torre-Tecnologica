@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import {ajustarZ} from './franja-campus.js?v=pasillos-292';
+import {ajustarZ} from './franja-campus.js';
 
 // Follaje de cobertura: una geometría compartida para miles de plantas.
 // Las hojas tienen nervadura elevada y dos alturas, sin siluetas poliédricas.
@@ -29,12 +29,12 @@ export function plantarCobertura(grupo,puntos,semilla=1511,opciones={}){
   m.name='Cobertura vegetal de hojas naturales';m.userData.sinColision=true;
   const obj=new THREE.Object3D(),color=new THREE.Color();
   const rand=()=>{semilla=(Math.imul(semilla,1664525)+1013904223)>>>0;return semilla/4294967296;};
-  puntos.forEach(({x,y,z,color:tono},i)=>{
+  puntos.forEach(({x,y,z,color:tono,altura=1},i)=>{
     const escala=(.72+rand()*.35)*(opciones.escala??1);
     const dispersion=opciones.dispersion??.08;
     obj.position.set(x+(rand()-.5)*dispersion,y+(rand()-.5)*.025,z+(rand()-.5)*dispersion);
     obj.rotation.set((rand()-.5)*.13,rand()*Math.PI*2,(rand()-.5)*.13);
-    obj.scale.set(escala,escala*(.85+rand()*.35),escala);obj.updateMatrix();
+    obj.scale.set(escala,escala*(.85+rand()*.35)*altura,escala);obj.updateMatrix();
     m.setMatrixAt(i,obj.matrix);color.set(tono).offsetHSL((rand()-.5)*.025,0,(rand()-.5)*(opciones.variacionColor??.055));m.setColorAt(i,color);
   });
   m.castShadow=true;m.receiveShadow=true;grupo.add(m);return m;

@@ -1,6 +1,6 @@
 import * as THREE from 'three';
-import {CONFIG} from './config.js?v=cota-b-418';
-import {bloque,placa,paredConPuerta} from './geometria.js?v=puerta-azul-423';
+import {CONFIG} from './config.js';
+import {bloque,placa,paredConPuerta} from './geometria.js';
 import {jardinContorno} from './exteriores.js';
 
 export const PISOS_ELEVADOR=11;

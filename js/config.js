@@ -1,7 +1,10 @@
 // Medidas en UNIDADES APROXIMADAS. No equivalen a metros verificados.
 // Ejes: X = izquierda/derecha, Y = altura, Z = fondo/frente (+Z hacia el acceso principal).
+export const PARQUE_ASTERISCO = { x: -48, z: 2, ancho: 13, fondo: 19 };
+
 export const CONFIG = {
   anchoCampus: 116,
+  espesorCerco: .24,
   escalaLongitudinalCampus: .78,
   extensionDerecha: 24.5,
   fondoCampus: 78,
@@ -31,14 +34,15 @@ export const CONFIG = {
 // Coordenadas LOCALES: x y z se miden desde el centro de cada torre.
 // Para cambiar un salón, solo edita sus posiciones, tamaños y paredes.
 // Paredes disponibles: 'norte' (-Z), 'sur' (+Z), 'este' (+X), 'oeste' (-X).
+export const ENTRADA_CAFETERIA={z:22,ancho:4.7,alto:3.14};
 export const AMBIENTES = {
   C: [
-    { id:'c-cafeteria', nombre:'Cafetería', tipo:'Alimentación', x:0, z:17.5, ancho:13.1, fondo:12, color:'#d6eccc', paredes:['norte','oeste'], descripcion:'Espacio de cafetería de la Torre C; disposición interna por verificar.' },
+    { id:'c-cafeteria', nombre:'Cafetería', tipo:'Alimentación', x:0, z:17.5, ancho:13.1, fondo:12, color:'#d6eccc', paredes:['norte','oeste'], descripcion:'Comedor y barra de café junto al patio y la terraza.' },
     { id:'c-cocina', nombre:'Cocina', tipo:'Alimentación', x:0, z:2.1, ancho:13.1, fondo:11.4, color:'#e7e2cc', paredes:['norte','oeste','este'], descripcion:'Área de cocina señalada en el croquis del primer nivel.' },
-    { id:'c-servicios', nombre:'Ambientes C', tipo:'Ambiente por definir', x:0, z:-16.7, ancho:13.1, fondo:19, color:'#d8e6e3', paredes:['norte','oeste','este'], descripcion:'Ambientes de la parte posterior de la Torre C; se ajustarán con un plano más detallado.' }
+    { id:'c-servicios', nombre:'Ambientes C', tipo:'Ambiente por definir', x:0, z:-16.7, ancho:13.1, fondo:19, color:'#d8e6e3', paredes:['norte','oeste','este'], descripcion:'Pasadizo transversal, servicios higiénicos, vigilancia y dependencias de apoyo.' }
   ],
   B: [
-    { id:'b-elevadores', nombre:'Elevadores', tipo:'Circulación vertical', x:0, z:18, ancho:13, fondo:9, recorteFrontal:2.2, color:'#d5e4f2', descripcion:'Cuatro elevadores con puertas animadas y acceso a los pisos 1 al 11; vestíbulo con vidrio de marco negro y jardín lateral en L con borde plomo.' },
+    { id:'b-elevadores', nombre:'Elevadores', tipo:'Circulación vertical', x:0, z:18, ancho:13, fondo:9, recorteFrontal:2.2, color:'#d5e4f2', descripcion:'Seis elevadores con puertas animadas y acceso a los pisos 1 al 11; vestíbulo con vidrio de marco negro y jardín lateral en L con borde plomo.' },
     { id:'b-biblioteca', nombre:'Biblioteca', tipo:'Estudio', x:0, z:-1.5, ancho:13, fondo:22.5, color:'#d6e3fa', paredes:[], descripcion:'Biblioteca central indicada en el croquis.' },
   ],
   A: [

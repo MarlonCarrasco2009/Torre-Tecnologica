@@ -27,6 +27,14 @@ export function ajustarZ(z,x=0){
     -retrocesoFrontal*frontal-ensancheIngreso*pasoIngreso;
 }
 
+// Los objetos de Torre C interpolan entre los mismos encuentros del edificio y sus accesos.
+const anclasC=[-39,-32,-22,-10.9,7,14.5,19.5,28.5,33,39];
+export function zTorreC(z){
+  if(z<=anclasC[0]||z>=anclasC.at(-1))return ajustarZ(z,-28);
+  const i=anclasC.findIndex(a=>a>=z),a=anclasC[i-1],b=anclasC[i];
+  return THREE.MathUtils.lerp(ajustarZ(a,-28),ajustarZ(b,-28),(z-a)/(b-a));
+}
+
 export function compactarFranja(campus){
   campus.updateMatrixWorld(true);
   const caja=new THREE.Box3(),p=new THREE.Vector3(),matriz=new THREE.Matrix4();

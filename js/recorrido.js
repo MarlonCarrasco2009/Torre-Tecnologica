@@ -1,10 +1,10 @@
 import * as THREE from 'three';
-import { ajustarX,ajustarZ } from './franja-campus.js?v=pasillos-292';
+import {ubicacionCampus} from './ajuste-estudio.js';
 import { CONFIG } from './config.js';
 import { crearPersonaje } from './personaje.js';
-import { crearNavegacion } from './navegacion.js?v=puertas-auditorio-95';
+import { crearNavegacion } from './navegacion.js';
 
-export function crearRecorrido({escena,campus=escena,camara,controles,canvas,visor,etiquetas,suelo,extras,perimetro,capaEtiquetas,elevadores}){
+export function crearRecorrido({escena,campus=escena,camara,controles,canvas,visor,etiquetas,suelo,extras,perimetro,capaEtiquetas,elevadores,jardines={puntoInicio:null}}){
   const navegacion=crearNavegacion(escena);
   const avatar=crearPersonaje();escena.add(avatar.grupo);avatar.grupo.visible=false;
   avatar.grupo.userData.sinColision=true;
@@ -12,6 +12,7 @@ export function crearRecorrido({escena,campus=escena,camara,controles,canvas,vis
   const hud=document.querySelector('#recorrido-hud'),estado=document.querySelector('#recorrido-estado');
   const ayuda=document.querySelector('.viewer-help'),chip=document.querySelector('.scene-chip');
   const correr=document.querySelector('#recorrido-correr');
+  const botonSaltar=document.querySelector('#recorrido-saltar');
   const panelElevador=document.querySelector('#elevador-panel');
   const usarElevador=document.querySelector('#elevador-usar');
   const estadoElevador=document.querySelector('#elevador-estado');
@@ -23,7 +24,7 @@ export function crearRecorrido({escena,campus=escena,camara,controles,canvas,vis
   const posicionAnterior=new THREE.Vector3(),objetivo=new THREE.Vector3(),deseada=new THREE.Vector3();
   let activo=false,guardado=null,yaw=0,pitch=.30,distancia=5.5,carrera=false,arrastre=null;
   canvas.tabIndex=0;
-  canvas.setAttribute('aria-label','Vista del campus. En modo recorrido usa WASD o flechas para moverte.');
+  canvas.setAttribute('aria-label','Vista del campus. En modo recorrido usa WASD o flechas para moverte y la barra espaciadora para saltar.');
   function limpiar(){
     teclas.clear();arrastre=null;
     hud.querySelectorAll('[data-mover]').forEach(b=>b.classList.remove('pulsado'));
@@ -43,10 +44,10 @@ export function crearRecorrido({escena,campus=escena,camara,controles,canvas,vis
     camara.lookAt(objetivo);
   }
   function inicio(){
-    elevadores.reiniciar();
+    reiniciarPosicion();
     limpiar();carrera=false;correr.setAttribute('aria-pressed','false');
     // Comienza dentro del acceso inferior del croquis, sobre el piso bajo.
-    campus.localToWorld(avatar.grupo.position.set(ajustarX(CONFIG.ingreso.x),.13,ajustarZ(35.7)));
+    avatar.grupo.position.copy(ubicacionCampus(campus,CONFIG.ingreso.x,.13,35.7));
     avatar.grupo.rotation.y=Math.PI;avatar.reiniciar();yaw=0;pitch=.38;distancia=6.5;
     actualizarCamara(0,true);canvas.focus({preventScroll:true});
   }
@@ -56,21 +57,21 @@ export function crearRecorrido({escena,campus=escena,camara,controles,canvas,vis
     const capas=[['toggle-muros',perimetro],['toggle-exteriores',extras],['toggle-etiquetas',capaEtiquetas]];
     if(activo){
       guardado={pos:camara.position.clone(),target:controles.target.clone(),
-        ayuda:ayuda.textContent,chip:chip.textContent,
+        ayuda:ayuda.textContent,chip:chip.textContent,etiquetasDisplay:etiquetas.domElement.style.display,
         capas:capas.map(([id,g])=>({visible:g.visible,checked:document.getElementById(id).checked}))};
       controles.enabled=false;avatar.grupo.visible=true;suelo.visible=true;
       capas.forEach(([id,g],i)=>{const input=document.getElementById(id);input.disabled=true;input.checked=i!==2;g.visible=i!==2;});
       // Oculta todas las etiquetas, incluida la del acceso exterior.
       etiquetas.domElement.style.display='none';
-      ayuda.textContent='WASD / flechas: mover · Shift: correr · Arrastrar: mirar · E: saludar · F: elevador · Esc: salir';
+      ayuda.textContent='WASD o flechas para mover · Espacio para saltar · Shift para correr · Arrastra para mirar · E para saludar · F para elevador · Esc para salir';
       chip.textContent='● TERCERA PERSONA';
       inicio();
     }else{
-      elevadores.reiniciar();panelElevador.hidden=true;usarElevador.hidden=true;visor.classList.remove('en-elevador');
+      reiniciarPosicion();panelElevador.hidden=true;usarElevador.hidden=true;visor.classList.remove('en-elevador');
       avatar.grupo.visible=false;controles.enabled=true;
       camara.position.copy(guardado.pos);controles.target.copy(guardado.target);controles.update();
       capas.forEach(([id,g],i)=>{const input=document.getElementById(id);input.disabled=false;input.checked=guardado.capas[i].checked;g.visible=guardado.capas[i].visible;});
-      etiquetas.domElement.style.display='';ayuda.textContent=guardado.ayuda;chip.textContent=guardado.chip;
+      etiquetas.domElement.style.display=guardado.etiquetasDisplay;ayuda.textContent=guardado.ayuda;chip.textContent=guardado.chip;
     }
     visor.classList.toggle('recorriendo',activo);hud.hidden=!activo;
     botones.forEach(b=>{b.setAttribute('aria-pressed',String(activo));b.title=activo?'Volver a la maqueta':'Recorrer en tercera persona';});
@@ -81,24 +82,46 @@ export function crearRecorrido({escena,campus=escena,camara,controles,canvas,vis
     if(teclas.size===0)avatar.grupo.rotation.y=-yaw;
     avatar.saludar();
   }
+  function reiniciarPosicion(){navegacion.cancelarSalto();elevadores.reiniciar();}
+  function saltar(){
+    if(activo&&!elevadores.bloqueado)navegacion.saltar(avatar.grupo.position);
+  }
   function entrarElevador(){
-    if(!activo)return;
+    if(!activo||navegacion.enAire)return;
     limpiar();elevadores.usar(avatar.grupo.position);canvas.focus({preventScroll:true});
   }
-  function irElevadores(piso=1){
+  function irElevadores(){
     if(!activo)cambiar(true);
-    limpiar();elevadores.reiniciar(piso);
+    limpiar();reiniciarPosicion();
     avatar.grupo.position.copy(elevadores.puntoInicio());
     avatar.grupo.rotation.y=-Math.PI/2;yaw=-Math.PI/2;pitch=.42;distancia=4;
     navegacion.refrescar();actualizarCamara(0,true);canvas.focus({preventScroll:true});
   }
-  document.querySelector('#btn-ir-elevadores').addEventListener('click',()=>irElevadores());
-  document.querySelector('#recorrido-elevadores').addEventListener('click',()=>irElevadores());
-  document.querySelector('#btn-vestibulo-segundo').addEventListener('click',()=>irElevadores(2));
+  document.querySelector('#btn-ir-elevadores').addEventListener('click',irElevadores);
+  document.querySelector('#recorrido-elevadores').addEventListener('click',irElevadores);
+  function irJardines(){
+    const punto=typeof jardines?.puntoInicio==='function'?jardines.puntoInicio():jardines?.puntoInicio;
+    if(!punto?.isVector3)return;
+    if(!activo)cambiar(true);
+    limpiar();reiniciarPosicion();avatar.reiniciar();
+    avatar.grupo.position.copy(punto);navegacion.refrescar();
+    const altura=navegacion.altura(punto.x,punto.z,punto.y);
+    if(altura!==null)avatar.grupo.position.y=altura;
+    avatar.grupo.rotation.y=Math.PI;yaw=0;pitch=.28;distancia=4.4;
+    actualizarCamara(0,true);canvas.focus({preventScroll:true});
+  }
+  document.querySelector('#btn-recorrer-jardines')?.addEventListener('click',irJardines);
+  document.querySelector('#btn-caminar-pasadizo')?.addEventListener('click',()=>{
+    if(!activo)cambiar(true);
+    limpiar();reiniciarPosicion();avatar.reiniciar();
+    avatar.grupo.position.copy(ubicacionCampus(campus,-39.35,CONFIG.baseY+.09,-22,true));
+    avatar.grupo.rotation.y=Math.PI/2;yaw=Math.PI/2;pitch=.12;distancia=2.1;
+    navegacion.refrescar();actualizarCamara(0,true);canvas.focus({preventScroll:true});
+  });
   document.querySelector('#btn-recorrer-c').addEventListener('click',()=>{
     if(!activo)cambiar(true);
-    limpiar();elevadores.reiniciar();
-    campus.localToWorld(avatar.grupo.position.set(ajustarX(-39.7),CONFIG.baseY+.01,ajustarZ(12.5,-39.7)));
+    limpiar();reiniciarPosicion();
+    avatar.grupo.position.copy(ubicacionCampus(campus,-39.7,CONFIG.baseY+.01,12.5,true));
     avatar.grupo.rotation.y=Math.PI;yaw=0;pitch=.18;distancia=3.2;
     navegacion.refrescar();actualizarCamara(0,true);canvas.focus({preventScroll:true});
   });
@@ -112,7 +135,8 @@ export function crearRecorrido({escena,campus=escena,camara,controles,canvas,vis
     viajando:'En movimiento',saliendo:'Saliendo al vestíbulo…'};
   function actualizarPanel(){
     const cerca=elevadores.cercano(avatar.grupo.position);
-    usarElevador.hidden=!activo||elevadores.bloqueado||!cerca;
+    usarElevador.hidden=!activo||elevadores.bloqueado||navegacion.enAire||!cerca;
+    botonSaltar.disabled=elevadores.bloqueado;
     if(cerca)usarElevador.textContent=`Entrar al elevador ${cerca.id} · F`;
     panelElevador.hidden=!activo||!elevadores.bloqueado;
     visor.classList.toggle('en-elevador',!panelElevador.hidden);
@@ -130,14 +154,17 @@ export function crearRecorrido({escena,campus=escena,camara,controles,canvas,vis
     document.querySelector('#recorrido-nivel').hidden=elevadores.piso===1&&!elevadores.bloqueado;
   }
   botones.forEach(b=>b.addEventListener('click',()=>cambiar(!activo)));
+  botonSaltar.addEventListener('click',saltar);
   document.querySelector('#recorrido-saludar').addEventListener('click',saludar);
   document.querySelector('#recorrido-inicio').addEventListener('click',inicio);
   document.querySelector('#recorrido-salir').addEventListener('click',()=>cambiar(false));
   correr.addEventListener('click',()=>{carrera=!carrera;correr.setAttribute('aria-pressed',String(carrera));});
-  const codigos=new Set(['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','ShiftLeft','ShiftRight','KeyE','KeyF','Escape']);
+  const codigos=new Set(['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','ShiftLeft','ShiftRight','KeyE','KeyF','Space','Escape']);
   window.addEventListener('keydown',e=>{
     if(!activo||e.target.matches('input,textarea,select,[contenteditable="true"]')||!codigos.has(e.code))return;
+    if(e.code==='Space'&&e.target.matches('button,a[href]'))return;
     e.preventDefault();
+    if(e.code==='Space'){if(!e.repeat)saltar();return;}
     if(e.code==='Escape'){cambiar(false);botones[0].focus();return;}
     if(e.code==='KeyE'){if(!e.repeat)saludar();return;}
     if(e.code==='KeyF'){if(!e.repeat)entrarElevador();return;}
@@ -186,9 +213,10 @@ export function crearRecorrido({escena,campus=escena,camara,controles,canvas,vis
         const angulo=Math.atan2(dx,dz),actual=avatar.grupo.rotation.y;
         avatar.grupo.rotation.y+=Math.atan2(Math.sin(angulo-actual),Math.cos(angulo-actual))*(1-Math.exp(-14*dt));
       }
+      navegacion.actualizarSalto(avatar.grupo.position,dt);
       const velocidad=Math.hypot(avatar.grupo.position.x-posicionAnterior.x,avatar.grupo.position.z-posicionAnterior.z)/Math.max(dt,.001);
       const entrando=['alineando','entrando','saliendo'].includes(elevadores.fase);
-      const texto=avatar.animar(dt,entrando?1.8:velocidad);
+      const texto=avatar.animar(dt,entrando?1.8:velocidad,navegacion.enAire);
       const estadoActual=elevadores.fase==='viajando'?`Viajando al piso ${elevadores.destino}`:texto;
       if(estado.textContent!==estadoActual)estado.textContent=estadoActual;
       actualizarCamara(dt);

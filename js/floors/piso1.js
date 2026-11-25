@@ -1,8 +1,9 @@
+import {crearPiso1C} from './piso1-c.js';
 import * as THREE from 'three';
-import { ajustarX,ajustarZ } from '../franja-campus.js?v=pasillos-292';
-import { AMBIENTES,CONFIG,distribucionInterior } from '../config.js?v=losa-b-434';
-import { bloque,placa,columna,etiqueta,paredVidrio,paredConPuertas,paredConPuerta,fachadaTorreA,finVidrioAdmision } from '../geometria.js?v=placas-fachada-496';
-import { crearZonaElevadores,ENSANCHE_POR_FILA,cotaPiso,acabadoFranjasElevadores,materialLosetasElevadores } from '../elevadores.js?v=piso-fachada-497';
+import { ajustarX,ajustarZ } from '../franja-campus.js';
+import { AMBIENTES,CONFIG,distribucionInterior } from '../config.js';
+import { bloque,placa,columna,etiqueta,paredVidrio,paredConPuertas,paredConPuerta,fachadaTorreA,finVidrioAdmision } from '../geometria.js';
+import { crearZonaElevadores,ENSANCHE_POR_FILA,cotaPiso,acabadoFranjasElevadores,materialLosetasElevadores } from '../elevadores.js';
 
 const acabadoTabiquesAdmision=new THREE.MeshStandardMaterial({color:'#40444c',roughness:.84});
 const acabadoParedEscalera=new THREE.MeshStandardMaterial({color:'#edeae2',roughness:.9});
@@ -42,6 +43,7 @@ function crearLosaSegundo(padre,torre,paños,sueloVestibulo=null){
 // Devuelve un grupo independiente por torre: exactamente el PRIMER piso.
 // Los demás niveles los crearán otros compañeros en módulos diferentes.
 export function crearPiso1(torre, objetosSeleccionables, capaEtiquetas){
+  if(torre.id==='C')return crearPiso1C(torre,objetosSeleccionables,capaEtiquetas);
   const grupo=new THREE.Group(); grupo.name=`Piso 1 - Torre ${torre.id}`;
   const w=torre.ancho,d=torre.fondo;
   // El diseño anterior usaba 16 x 54 para todas las torres. Ahora los ambientes
