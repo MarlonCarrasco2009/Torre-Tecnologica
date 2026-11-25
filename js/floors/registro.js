@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { CONFIG } from '../config.js';
-import { crearPiso1 } from './piso1.js?v=aulas-a-458';
+import { crearPiso1 } from './piso1.js?v=vidrio-espejo-504';
 import { cubrirJardinesConTierraYPasto } from '../vegetacion.js?v=pasillos-292';
 import { aplicarPiedraPisos } from '../piedra-piso.js?v=pizarra-279';
 
