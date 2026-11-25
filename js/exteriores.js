@@ -17,8 +17,9 @@ const recorteFrontalB=CONFIG.recorteFrontalB;
 const topicoA=AMBIENTES.A.find(ambiente=>ambiente.id==='a-topico');
 // La losa toma su borde oeste de la cara exterior del tabique de Tópico.
 const oesteLosaA=(topicoA.x-topicoA.ancho/2)*CONFIG.torres.A.ancho/16-.15;
+const esteLosaA=13*CONFIG.torres.A.ancho/32+.15;
 const recorteFrontalA=oesteLosaA+CONFIG.torres.A.ancho/2;
-const extensionPorExtremoA=1;
+const extensionOesteA=1;
 const caraExteriorAula=CONFIG.torres.B.x+CONFIG.torres.B.ancho/2+.3;
 const nivelLlegadaEscaleras=1.35;
 const nivelExplanada=nivelLlegadaEscaleras-.01;
@@ -404,6 +405,7 @@ function pisoLateralElevado(grupo,puntos,alturaEnZ,color=pavimento){
   piso.name='Pasillo lateral elevado con espesor hasta el suelo';
   piso.castShadow=true; piso.receiveShadow=true;
   grupo.add(piso);
+  return piso;
 }
 
 
@@ -579,7 +581,17 @@ function crearAccesoLateral(grupo){
   }
   descansoMacizo(acceso,{x:(37.25+43.7)/2,z:4.45,ancho:43.7-37.25,fondo:53.1,altura:alto})
     .name='Paseo continuo de las fachadas de Torre A';
-  descansoMacizo(acceso,{x:(fachada+55.3)/2,z:28.9,ancho:55.3-fachada,fondo:7.8,altura:alto})
+  // El descanso sigue los dos cantos oblicuos del jardín hasta la escalera.
+  const llegadaFrontal=55.3;
+  const [extremoJardin,quiebreJardin,finJardin]=contornoFranja;
+  function hastaMuro(x,a,b){
+    const z=THREE.MathUtils.lerp(a[1],b[1],(x-a[0])/(b[0]-a[0]));
+    return [x,z+.1]; // Encaje bajo el muro tras la compactación del campus.
+  }
+  pisoLateralElevado(acceso,[[fachada,sur],[llegadaFrontal,sur],
+    hastaMuro(llegadaFrontal,quiebreJardin,finJardin),
+    hastaMuro(quiebreJardin[0],quiebreJardin,finJardin),
+    hastaMuro(fachada,extremoJardin,quiebreJardin)],()=>alto)
     .name='Descanso frontal unido a Torre A';
   // El paseo alto termina antes del ingreso. La franja que cruza las rejas
   // queda enrasada con su pavimento, sin un resalto que atraviese los vanos.
@@ -639,7 +651,7 @@ function crearAccesoLateral(grupo){
     {x:71.991+extensionPasadizo/2+separacionEscaleraRampa,z:finPasadizo,y:.86},3.6+extensionPasadizo,'escalera',
     {peldaños:4,barandas:3,nombre:'Escalera exterior junto al jardín en L'});
   // La pareja frontal sigue subiendo hacia las torres (-X).
-  recorrido(acceso,{x:57.7,z:28.9,y:bajo},{x:55.3,z:28.9,y:alto},7.8,'escalera',
+  recorrido(acceso,{x:57.7,z:28.9,y:bajo},{x:llegadaFrontal,z:28.9,y:alto},7.8,'escalera',
     {peldaños:6,tramos:2,barandas:3,nombre:'Escalera frontal de la isla trapezoidal'});
   const descansoExterior=descansoMacizo(acceso,{x:52.9,z:-29.5,ancho:23.4,fondo:1.4,altura:bajo});
   // Explanada exterior: misma superficie que la base del edificio de Ingreso.
@@ -892,9 +904,9 @@ function crearPerimetro(grupo){
   let inicio=-x;
   for(const torre of Object.values(CONFIG.torres).sort((a,b)=>a.x-b.x)){
     const recorte=torre.id==='A'?recorteFrontalA:torre.id==='B'?recorteFrontalB:0;
-    const extension=torre.id==='A'?extensionPorExtremoA:0;
+    const extension=torre.id==='A'?extensionOesteA:0;
     trazarMuroPerimetral(inicio,z,torre.x-torre.ancho/2+recorte-extension,z);
-    inicio=torre.x+torre.ancho/2+extension;
+    inicio=torre.x+torre.ancho/2;
   }
   const ingresoX=puerta.x+puerta.desplazamientoX;
   trazarMuroPerimetral(inicio,z,izquierda,z);
@@ -961,17 +973,23 @@ function unirTorresAlMuro(grupo){
         const base=.08,alto=CONFIG.baseY+CONFIG.altoPiso-base,espesor=torre.id==='C'?.24:.45;
         const recorteOeste=torre.id==='A'?recorteFrontalA:torre.id==='B'?recorteFrontalB:0;
         const anchoFrente=torre.ancho-recorteOeste,centroFrente=torre.x+recorteOeste/2;
-        const anchoPared=anchoFrente+(torre.id==='A'?2*extensionPorExtremoA:0);
-        bloque(grupo,{x:centroFrente,y:base+alto/2,z:muro,
-          ancho:anchoPared,alto,fondo:espesor,material:materialFrontal})
+        const extensionOeste=torre.id==='A'?extensionOesteA:0;
+        const anchoPared=anchoFrente+extensionOeste;
+        // El frente de A cierra también el segundo piso, hasta la coronación de A-205.
+        const altoPared=torre.id==='A'?alto+CONFIG.alturaSegundoPisoB+.085:alto;
+        bloque(grupo,{x:centroFrente-extensionOeste/2,y:base+altoPared/2,z:muro,
+          ancho:anchoPared,alto:altoPared,fondo:espesor,material:materialFrontal})
           .name=`Pared frontal delgada - Torre ${torre.id}`;
         if(torre.id==='A'||torre.id==='B'){
           const largo=1.2,baseColumnas=CONFIG.baseY+.08,superior=base+alto;
           for(const ladoColumna of (torre.id==='A'?[-1,1]:[-1])){
             const grosorColumna=torre.id==='A'&&ladoColumna===-1?.72:1.05;
             const retiroColumna=torre.id==='A'?grosorColumna/2:1.3;
+            const ejeColumna=torre.id==='A'&&ladoColumna===1
+              ?torre.x+esteLosaA-grosorColumna/2
+              :centroFrente+ladoColumna*(anchoFrente/2-retiroColumna);
             bloque(grupo,{
-              x:centroFrente+ladoColumna*(anchoFrente/2-retiroColumna),
+              x:ejeColumna,
               y:(baseColumnas+superior)/2,z:muro-espesor/2-largo/2,
               ancho:grosorColumna,alto:superior-baseColumnas,fondo:largo,material:materialFrontal
             }).name=`Columna del jardín frontal ${torre.id} · ${ladoColumna<0?'izquierda':'derecha'}`;

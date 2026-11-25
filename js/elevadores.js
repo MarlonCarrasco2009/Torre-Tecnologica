@@ -5,6 +5,7 @@ import {jardinContorno} from './exteriores.js';
 
 export const PISOS_ELEVADOR=11;
 export const ENSANCHE_POR_FILA=1.4;
+export const acabadoFranjasElevadores=new THREE.MeshStandardMaterial({color:'#353238',roughness:.84});
 const colorPared='#40444c';
 const anchoCabina=2.65;
 const acabadoPuertaAzul={anchoPuerta:.98,altoPuerta:2.2,colorMuro:'#f1efe9',
@@ -88,20 +89,26 @@ function rotulo(grupo,texto,x,y,z,rotacion=0,fondo='#101c28',color='#a6f2ff'){
 // y dos a la derecha (-Z), según el avance del compañero.
 export const DISTRIBUCION_ELEVADORES={derecha:2,izquierda:4};
 
-function pisoVestibuloSegundo(grupo,ancho,fondo){
+export function materialLosetasElevadores(ancho,fondo){
   const loseta=document.createElement('canvas');loseta.width=loseta.height=256;
   const ctx=loseta.getContext('2d');
+  const junta=2;
   ctx.fillStyle='#e8e5df';ctx.fillRect(0,0,256,256);
-  ctx.fillStyle='#b4b0aa';ctx.fillRect(0,0,2,256);ctx.fillRect(0,0,256,2);
+  ctx.fillStyle='#b4b0aa';
+  ctx.fillRect(0,0,junta,256);ctx.fillRect(0,0,256,junta);
   const textura=new THREE.CanvasTexture(loseta);
   textura.wrapS=textura.wrapT=THREE.RepeatWrapping;
+  textura.repeat.set(ancho/.85,fondo/.85);textura.colorSpace=THREE.SRGBColorSpace;
+  return new THREE.MeshStandardMaterial({map:textura,roughness:.66});
+}
+
+function pisoVestibuloSegundo(grupo,ancho,fondo){
   const banda=.82,centro=fondo-2*banda;
-  textura.repeat.set(ancho/.85,centro/.85);textura.colorSpace=THREE.SRGBColorSpace;
-  const material=new THREE.MeshStandardMaterial({map:textura,roughness:.66});
+  const material=materialLosetasElevadores(ancho,centro);
   const suelo=bloque(grupo,{y:-.15,ancho,alto:.3,fondo:centro,material});
   suelo.name='Losetas claras del vestíbulo del segundo piso';
   for(const lado of [-1,1]){
-    bloque(grupo,{z:lado*(centro+banda)/2,y:-.15,ancho,alto:.3,fondo:banda,color:'#353238'})
+    bloque(grupo,{z:lado*(centro+banda)/2,y:-.15,ancho,alto:.3,fondo:banda,material:acabadoFranjasElevadores})
       .name='Franja oscura frente a las puertas';
   }
   return suelo;

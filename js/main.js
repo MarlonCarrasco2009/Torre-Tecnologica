@@ -1,14 +1,15 @@
 import * as THREE from 'three';
 import { ajustarX,ajustarZ,compactarFranja } from './franja-campus.js?v=borde-295';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { Reflector } from 'three/addons/objects/Reflector.js';
 import { CSS2DRenderer } from 'three/addons/renderers/CSS2DRenderer.js';
 import { CONFIG } from './config.js?v=torre-b-341';
 import { ajustarPizarraFinal } from './piedra-piso.js?v=ceramica-366';
-import { crearTorres } from './floors/registro.js?v=aulas-a-458';
-import { crearExteriores } from './exteriores.js?v=pared-frontal-430';
+import { crearTorres } from './floors/registro.js?v=vidrio-espejo-504';
+import { crearExteriores } from './exteriores.js?v=piso-jardin-505';
 import { crearRecorrido } from './recorrido.js?v=cota-b-418';
 import { crearPuertasFachada } from './puertas.js?v=rejas-abribles-174';
-import { crearServicioElevadores } from './elevadores.js?v=descanso-422';
+import { crearServicioElevadores } from './elevadores.js?v=piso-fachada-497';
 import { crearBebederos } from './bebederos.js?v=columnas-bebederos-210';
 import { crearExpendedoras } from './expendedoras.js?v=358';
 
@@ -75,6 +76,36 @@ const cercoPosterior=-CONFIG.fondoCampus/2;
 campus.scale.z=CONFIG.escalaLongitudinalCampus;
 campus.position.z=cercoPosterior*(.85-campus.scale.z);
 campus.updateMatrixWorld(true);
+// Un solo espejo plano para todos los paños, medido tras compactar el campus.
+const cristalAulas=torres.A.getObjectByName('Cristal de la fachada de aulas');
+cristalAulas.geometry.computeBoundingBox();
+const cajaCristal=cristalAulas.geometry.boundingBox;
+const medidasCristal=cajaCristal.getSize(new THREE.Vector3());
+const espejo=new Reflector(new THREE.PlaneGeometry(medidasCristal.z,medidasCristal.y),{
+  color:0xb5bec1,textureWidth:1024,textureHeight:768,multisample:0,clipBias:.001
+});
+cajaCristal.getCenter(espejo.position);
+espejo.position.x=cajaCristal.max.x+.001;
+espejo.rotation.y=Math.PI/2;
+espejo.userData.sinColision=true;
+cristalAulas.add(espejo);
+espejo.updateWorldMatrix(true,false);
+const bordeEspejo=new THREE.Box3().setFromObject(espejo,true);
+const puntoEtiqueta=new THREE.Vector3();
+function actualizarEtiquetasDelEspejo(){
+  if(!capaEtiquetas.visible)return;
+  for(const etiqueta of capaEtiquetas.children){
+    etiqueta.getWorldPosition(puntoEtiqueta);
+    let oculta=false;
+    if(camara.position.x>bordeEspejo.max.x && puntoEtiqueta.x<bordeEspejo.min.x){
+      const t=(bordeEspejo.max.x-camara.position.x)/(puntoEtiqueta.x-camara.position.x);
+      const cruce=puntoEtiqueta.lerp(camara.position,1-t);
+      oculta=cruce.y>=bordeEspejo.min.y && cruce.y<=bordeEspejo.max.y &&
+        cruce.z>=bordeEspejo.min.z && cruce.z<=bordeEspejo.max.z;
+    }
+    etiqueta.element.style.visibility=oculta?'hidden':'';
+  }
+}
 ajustarPizarraFinal(campus);
 const puertasFachada=crearPuertasFachada(escena);
 const zonaElevadores=escena.getObjectByName('Área de elevadores').userData.zonaElevadores;
@@ -248,6 +279,7 @@ function animar(ahora=performance.now()){
   else controles.update();
   for(const nivel of zonaElevadores.niveles.values())nivel.cubierta.visible=recorrido.activo||interiorElevadores;
   renderer.render(escena,camara);
+  actualizarEtiquetasDelEspejo();
   etiquetas.render(escena,camara);
 }
 animar();
