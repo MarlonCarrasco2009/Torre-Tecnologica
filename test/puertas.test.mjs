@@ -6,7 +6,7 @@ import {crearPuertasFachada} from '../js/puertas.js';
 // Ejecuta la geometría real; solo omite los rótulos que necesitan canvas/DOM.
 const source=await readFile(new URL('../js/geometria.js',import.meta.url),'utf8');
 const bloqueSource=source.slice(source.indexOf('export function bloque('),source.indexOf('export function placa(')).replace('export ','');
-const fachadaSource=source.slice(source.indexOf('export function fachadaTorreA(')).replace('export ','');
+const fachadaSource=source.slice(source.indexOf('export const finVidrioAdmision=')).replaceAll('export ','');
 const crear=new Function('THREE','rotuloFachada',`${bloqueSource}\n${fachadaSource}\nreturn fachadaTorreA;`)(THREE,()=>{});
 const escena=new THREE.Scene();
 const fachada=crear(escena,{x:35.515625,z:5.6,largo:35.6,baseY:1.82,tipo:'conferencias',alto:4.4});
