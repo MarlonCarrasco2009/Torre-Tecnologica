@@ -31,6 +31,10 @@ export const CONFIG = {
   }
 };
 
+// Separación entre plantas detalladas de A, desde el pavimento hasta la losa siguiente.
+export const espesorMuroFrontalA=.45;
+export const entrepisoA=CONFIG.alturaSegundoPisoB+.085-.01;
+
 // Coordenadas LOCALES: x y z se miden desde el centro de cada torre.
 // Para cambiar un salón, solo edita sus posiciones, tamaños y paredes.
 // Paredes disponibles: 'norte' (-Z), 'sur' (+Z), 'este' (+X), 'oeste' (-X).

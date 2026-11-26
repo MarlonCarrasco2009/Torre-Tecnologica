@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { ajustarZ } from './franja-campus.js';
-import { CONFIG,AMBIENTES } from './config.js';
+import { CONFIG,AMBIENTES,entrepisoA,espesorMuroFrontalA } from './config.js';
 import { crearIngreso } from './ingreso.js';
 import { bloque,placa,columna,etiqueta } from './geometria.js';
 import { aplicarPiedraPisos } from './piedra-piso.js';
@@ -974,13 +974,13 @@ function unirTorresAlMuro(grupo){
       if(profundidad<.2) continue;
 
       if(lado===1){
-        const base=.08,alto=CONFIG.baseY+CONFIG.altoPiso-base,espesor=torre.id==='C'?.24:.45;
+        const base=.08,alto=CONFIG.baseY+CONFIG.altoPiso-base,espesor=torre.id==='A'?espesorMuroFrontalA:.45;
         const recorteOeste=torre.id==='A'?recorteFrontalA:torre.id==='B'?recorteFrontalB:0;
         const anchoFrente=torre.ancho-recorteOeste,centroFrente=torre.x+recorteOeste/2;
         const extensionOeste=torre.id==='A'?extensionOesteA:0;
         const anchoPared=anchoFrente+extensionOeste;
-        // El frente de A cierra también el segundo piso, hasta la coronación de A-205.
-        const altoPared=torre.id==='A'?alto+CONFIG.alturaSegundoPisoB+.085:alto;
+        // El frente de A llega hasta la coronación de A-704.
+        const altoPared=torre.id==='A'?alto+CONFIG.alturaSegundoPisoB+.085+5*entrepisoA:alto;
         bloque(grupo,{x:centroFrente-extensionOeste/2,y:base+altoPared/2,z:muro,
           ancho:anchoPared,alto:altoPared,fondo:espesor,material:materialFrontal})
           .name=`Pared frontal delgada - Torre ${torre.id}`;

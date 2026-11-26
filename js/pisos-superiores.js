@@ -292,7 +292,8 @@ export function crearPisosSuperiores(escena) {
     categoriaContexto=null;
     if(!es11) {
       const separacion=62/5;
-      for(let i=0;i<5;i++)aula('A',i+1,ax,-30+(i+.5)*separacion,aw,separacion,-1,4,3);
+      // En los cortes del 5 al 7 ya se ve la planta detallada de Torre A.
+      if(numero>7)for(let i=0;i<5;i++)aula('A',i+1,ax,-30+(i+.5)*separacion,aw,separacion,-1,4,3);
       const sepC=62/4;
       for(let i=0;i<4;i++)aula('C',i+1,cx,-30+(i+.5)*sepC,cw,sepC,1,5,4);
       for(const [id,x,anchoPatio] of [['AB',15.75,9.5],['BC',-15.525,9.05]]) {

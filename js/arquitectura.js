@@ -80,7 +80,8 @@ export function crearArquitectura(escena, torres) {
     // La cota de cada losa coincide con la llegada del ascensor existente.
     for(let piso=2;piso<=pisos+1;piso++) {
       const y=cota(piso)-.18;
-      if(piso===2&&(id==='A'||id==='B')){ /* Existing detailed second-floor slabs retained in base. */ } else if(id==='B' && zona && piso<=pisos) {
+      const losaDetallada=(id==='A'&&piso<=7)||(id==='B'&&piso===2);
+      if(losaDetallada){ /* La losa ya forma parte de la planta detallada. */ } else if(id==='B' && zona && piso<=pisos) {
         // Hueco real para las cabinas y su vestíbulo: no se superpone una losa.
         const hx=posicionAscensor.x, hz=posicionAscensor.z;
         const hw=zona.ancho+.25, hd=zona.fondo+.25;
@@ -214,6 +215,7 @@ export function crearArquitectura(escena, torres) {
     // Desde el piso 5 las conexiones provienen de los croquis y de crearContexto.
     // Conservar el segundo puente genérico atravesaría los nuevos patios.
     for(let piso=2;piso<=4;piso++) {
+      if(der==='A')continue; // Estas pasarelas ya forman parte de las plantas detalladas.
       for(const zz of [zPuente,-21]) {
         const y=cota(piso), largo=xb-xa, anchoPaso=3.25;
         caja('s','hormigon',centro,y-.18,zz,largo,.36,anchoPaso);

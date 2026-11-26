@@ -97,33 +97,37 @@ const pisosSuperiores=crearPisosSuperiores(campus);
 const jardines=crearJardinesDescanso({escena,extras,patios:pisosSuperiores.obtener(8).userData.patios});
 arquitectura.envolvente.add(pisosSuperiores.crearContexto());
 prepararCampus(campus,{arquitectura,pisosSuperiores,jardines});
-// Un solo espejo plano para todos los paños, medido tras compactar el campus.
-const cristalAulas=torres.A.getObjectByName('Cristal de la fachada de aulas');
-cristalAulas.geometry.computeBoundingBox();
-const cajaCristal=cristalAulas.geometry.boundingBox;
-const medidasCristal=cajaCristal.getSize(new THREE.Vector3());
-const espejo=new ReflectorLocal(new THREE.PlaneGeometry(medidasCristal.z,medidasCristal.y),{
+// Los paños coplanares comparten una sola captura del reflejo.
+const cristales=[2,3,4,5,6,7].map(piso=>torres.A.getObjectByName(`Piso ${piso} - Torre A`)
+  .getObjectByName('Cristal de la fachada de aulas'));
+const bordesCristal=cristales.map(cristal=>new THREE.Box3().setFromObject(cristal,true));
+const cristalBase=cristales[0];
+const formas=bordesCristal.map(caja=>{
+  const a=cristalBase.worldToLocal(caja.min.clone()),b=cristalBase.worldToLocal(caja.max.clone());
+  return new THREE.Shape([
+    new THREE.Vector2(-b.z,a.y),new THREE.Vector2(-a.z,a.y),
+    new THREE.Vector2(-a.z,b.y),new THREE.Vector2(-b.z,b.y)
+  ]);
+});
+const espejo=new ReflectorLocal(new THREE.ShapeGeometry(formas),{
   color:0xb5bec1,textureWidth:1024,textureHeight:768,multisample:0,clipBias:.001
 });
-cajaCristal.getCenter(espejo.position);
-espejo.position.x=cajaCristal.max.x+.001;
+espejo.position.x=cristalBase.worldToLocal(bordesCristal[0].max.clone()).x+.001;
 espejo.rotation.y=Math.PI/2;
 espejo.userData.sinColision=true;
-cristalAulas.add(espejo);
-espejo.updateWorldMatrix(true,false);
-const bordeEspejo=new THREE.Box3().setFromObject(espejo,true);
+cristalBase.add(espejo);
 const puntoEtiqueta=new THREE.Vector3();
 function actualizarEtiquetasDelEspejo(){
   if(!capaEtiquetas.visible)return;
   for(const etiqueta of capaEtiquetas.children){
     etiqueta.getWorldPosition(puntoEtiqueta);
-    let oculta=false;
-    if(camara.position.x>bordeEspejo.max.x && puntoEtiqueta.x<bordeEspejo.min.x){
-      const t=(bordeEspejo.max.x-camara.position.x)/(puntoEtiqueta.x-camara.position.x);
-      const cruce=puntoEtiqueta.lerp(camara.position,1-t);
-      oculta=cruce.y>=bordeEspejo.min.y && cruce.y<=bordeEspejo.max.y &&
-        cruce.z>=bordeEspejo.min.z && cruce.z<=bordeEspejo.max.z;
-    }
+    const oculta=bordesCristal.some(caja=>{
+      if(camara.position.x<=caja.max.x||puntoEtiqueta.x>=caja.min.x)return false;
+      const t=(caja.max.x-camara.position.x)/(puntoEtiqueta.x-camara.position.x);
+      const y=THREE.MathUtils.lerp(camara.position.y,puntoEtiqueta.y,t);
+      const z=THREE.MathUtils.lerp(camara.position.z,puntoEtiqueta.z,t);
+      return y>=caja.min.y&&y<=caja.max.y&&z>=caja.min.z&&z<=caja.max.z;
+    });
     etiqueta.element.style.visibility=oculta?'hidden':'';
   }
 }
